@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Post UTME CBT Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --blue: #1a3bbd;
+    --blue-dark: #122894;
+    --blue-light: #2d52e0;
+    --gold: #f5a623;
+    --gold-light: #ffc85a;
+    --white: #ffffff;
+    --gray-50: #f8f9fc;
+    --gray-100: #eef0f7;
+    --gray-200: #d8dce8;
+    --gray-400: #8b92a9;
+    --gray-600: #4a5068;
+    --gray-800: #1e2235;
+    --success: #38a169;
+    --error: #e53e3e;
+    --sidebar-w: 240px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-800);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* ── SIDEBAR ─────────────────────────────────────── */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: white;
+    height: 100vh;
+    position: fixed;
+    left: 0; top: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--gray-100);
+    z-index: 100;
+    transition: transform 0.3s;
+  }
+
+  .sidebar-logo {
+    padding: 24px 20px;
+    border-bottom: 1px solid var(--gray-100);
+  }
+
+  .logo-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-light));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    color: white;
+  }
+
+  .logo-text h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray-800);
+    line-height: 1.2;
+  }
+
+  .logo-text p {
+    font-size: 11px;
+    color: var(--gray-400);
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 16px 12px;
+    overflow-y: auto;
+  }
+
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gray-400);
+    padding: 8px 8px 6px;
+    margin-top: 8px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--gray-600);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+    text-decoration: none;
+  }
+
+  .nav-item:hover {
+    background: var(--gray-50);
+    color: var(--gray-800);
+  }
+
+  .nav-item.active {
+    background: rgba(26,59,189,0.08);
+    color: var(--blue);
+    font-weight: 600;
+  }
+
+  .nav-item .nav-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    background: var(--gray-100);
+    flex-shrink: 0;
+  }
+
+  .nav-item.active .nav-icon {
+    background: rgba(26,59,189,0.12);
+  }
+
+  .nav-badge {
+    margin-left: auto;
+    background: var(--blue);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+  }
+
+  .sidebar-promo {
+    margin: 12px;
+    background: linear-gradient(135deg, var(--blue) 0%, var(--blue-light) 100%);
+    border-radius: 14px;
+    padding: 18px 16px;
+    color: white;
+  }
+
+  .sidebar-promo h4 {
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .sidebar-promo p {
+    font-size: 11px;
+    opacity: 0.8;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .promo-btn {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s;
+  }
+
+  .promo-btn:hover { background: rgba(255,255,255,0.3); }
+
+  /* ── MAIN ────────────────────────────────────────── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── TOPBAR ──────────────────────────────────────── */
+  .topbar {
+    height: 64px;
+    background: white;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    padding: 0 28px;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .hamburger {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--gray-600);
+  }
+
+  .search-bar {
+    flex: 1;
+    max-width: 400px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-100);
+    border-radius: 10px;
+    padding: 9px 14px;
+  }
+
+  .search-bar input {
+    border: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--gray-800);
+    outline: none;
+    flex: 1;
+  }
+
+  .search-bar input::placeholder { color: var(--gray-400); }
+
+  .topbar-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .notif-btn {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    position: relative;
+  }
+
+  .notif-dot {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 8px; height: 8px;
+    background: var(--error);
+    border-radius: 50%;
+    border: 2px solid white;
+  }
+
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--gray-50);
+    border: 1.5px solid var(--gray-100);
+    border-radius: 12px;
+    padding: 6px 12px 6px 6px;
+    cursor: pointer;
+  }
+
+  .user-avatar {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .user-info .user-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-800);
+    line-height: 1.2;
+  }
+
+  .user-info .user-uni {
+    font-size: 11px;
+    color: var(--gray-400);
+  }
+
+  /* ── CONTENT ─────────────────────────────────────── */
+  .content {
+    padding: 28px;
+    flex: 1;
+  }
+
+  /* ── HERO BANNER ─────────────────────────────────── */
+  .hero-banner {
+    background: linear-gradient(135deg, #0f2299 0%, #1a3bbd 50%, #1e4dd8 100%);
+    border-radius: 20px;
+    padding: 32px 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-banner::before {
+    content: '';
+    position: absolute;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    top: -100px; right: 200px;
+  }
+
+  .hero-left { position: relative; z-index: 1; }
+
+  .hero-left p {
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .hero-left h2 {
+    font-family: 'Sora', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 6px;
+  }
+
+  .hero-left .tagline {
+    color: rgba(255,255,255,0.65);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .hero-btn {
+    padding: 11px 20px;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+
+  .hero-btn.primary {
+    background: white;
+    color: var(--blue);
+  }
+
+  .hero-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  }
+
+  .hero-btn.outline {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+
+  .hero-btn.outline:hover { background: rgba(255,255,255,0.25); }
+
+  /* PROGRESS CIRCLE */
+  .hero-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .progress-card {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 16px;
+    padding: 20px 24px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+  }
+
+  .progress-ring {
+    position: relative;
+    width: 80px; height: 80px;
+    margin: 0 auto 8px;
+  }
+
+  .progress-ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .progress-ring .bg { stroke: rgba(255,255,255,0.15); }
+  .progress-ring .fill {
+    stroke: var(--gold);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease;
+  }
+
+  .progress-pct {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Sora', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    color: white;
+  }
+
+  .progress-card .prog-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* COUNTDOWN */
+  .countdown-strip {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .cd-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    white-space: nowrap;
+  }
+
+  .cd-units {
+    display: flex;
+    gap: 12px;
+  }
+
+  .cd-unit {
+    text-align: center;
+  }
+
+  .cd-unit .cd-num {
+    font-family: 'Sora', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: white;
+    line-height: 1;
+  }
+
+  .cd-unit .cd-tag {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 2px;
+  }
+
+  .cd-sep {
+    font-size: 20px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 700;
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+
+  /* ── ACTIVATION BANNER ───────────────────────────── */
+  .activation-banner {
+    background: linear-gradient(135deg, #fff8e1, #fffde7);
+    border: 1.5px solid #f5a623;
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .activation-banner .ab-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+
+  .activation-banner .ab-text h4 {
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #92400e;
+    margin-bottom: 2px;
+  }
+
+  .activation-banner .ab-text p {
+    font-size: 13px;
+    color: #b45309;
+  }
+
+  .activate-btn {
+    margin-left: auto;
+    background: var(--gold);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .activate-btn:hover {
+    background: #e09000;
+    transform: translateY(-1px);
+  }
+
+  /* ── SECTION TITLE ───────────────────────────────── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-header h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--gray-800);
+  }
+
+  .view-all {
+    font-size: 13px;
+    color: var(--blue);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  /* ── QUICK ACCESS ────────────────────────────────── */
+  .quick-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .quick-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1.5px solid var(--gray-100);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .quick-card:hover {
+    border-color: var(--blue);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(26,59,189,0.1);
+  }
+
+  .qc-icon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  .qc-icon.blue { background: rgba(26,59,189,0.1); }
+  .qc-icon.purple { background: rgba(128,0,255,0.08); }
+  .qc-icon.green { background: rgba(56,161,105,0.1); }
+  .qc-icon.orange { background: rgba(245,166,35,0.1); }
+  .qc-icon.red { background: rgba(229,62,62,0.1); }
+  .qc-icon.teal { background: rgba(0,180,180,0.1); }
+
+  .qc-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray-800);
+  }
+
+  .qc-desc {
+    font-size: 12px;
+    color: var(--gray-400);
+    line-height: 1.4;
+  }
+
+  .qc-arrow {
+    font-size: 16px;
+    color: var(--gray-400);
+    align-self: flex-end;
+    margin-top: auto;
+  }
+
+  /* ── SUBJECTS ────────────────────────────────────── */
+  .subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .subject-card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px 20px;
+    border: 1.5px solid var(--gray-100);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .subject-card:hover {
+    border-color: var(--blue);
+    box-shadow: 0 4px 16px rgba(26,59,189,0.08);
+  }
+
+  .subj-icon {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .subj-info { flex: 1; }
+
+  .subj-name {
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+  }
+
+  .subj-count {
+    font-size: 12px;
+    color: var(--gray-400);
+  }
+
+  .subj-progress-bar {
+    height: 4px;
+    background: var(--gray-100);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .subj-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--blue), var(--blue-light));
+  }
+
+  .subj-arrow {
+    color: var(--gray-300);
+    font-size: 16px;
+  }
+
+  /* ── RECENT ACTIVITY ─────────────────────────────── */
+  .activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .activity-card {
+    background: white;
+    border-radius: 14px;
+    padding: 16px 20px;
+    border: 1.5px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .activity-card:hover {
+    border-color: var(--gray-200);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .activity-img {
+    width: 64px; height: 64px;
+    border-radius: 10px;
+    background: var(--gray-100);
+    object-fit: cover;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+
+  .activity-text { flex: 1; }
+
+  .activity-text h4 {
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin-bottom: 4px;
+  }
+
+  .activity-meta {
+    font-size: 12px;
+    color: var(--gray-400);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .activity-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--gray-300); }
+
+  .activity-text p {
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.4;
+  }
+
+  .read-more-btn {
+    background: white;
+    border: 1.5px solid var(--blue);
+    color: var(--blue);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .read-more-btn:hover {
+    background: var(--blue);
+    color: white;
+  }
+
+  /* ── FOOTER BANNER ───────────────────────────────── */
+  .footer-banner {
+    background: var(--gray-100);
+    border-radius: 16px;
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .footer-banner .fb-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .fb-icon {
+    width: 44px; height: 44px;
+    background: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .footer-banner h4 {
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gray-800);
+  }
+
+  .footer-banner p {
+    font-size: 13px;
+    color: var(--gray-400);
+  }
+
+  .start-btn {
+    background: var(--blue);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .start-btn:hover {
+    background: var(--blue-dark);
+    transform: translateY(-1px);
+  }
+
+  /* ── ACTIVATION MODAL ────────────────────────────── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .modal-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: white;
+    border-radius: 20px;
+    padding: 36px;
+    max-width: 420px;
+    width: 100%;
+    position: relative;
+    transform: scale(0.95);
+    transition: transform 0.2s;
+  }
+
+  .modal-overlay.show .modal { transform: scale(1); }
+
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: var(--gray-100);
+    border: none;
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal h3 {
+    font-family: 'Sora', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .modal p {
+    font-size: 14px;
+    color: var(--gray-400);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  .key-input-wrap {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .key-input {
+    flex: 1;
+    padding: 13px 16px;
+    border: 2px solid var(--gray-200);
+    border-radius: 12px;
+    font-family: 'Sora', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    outline: none;
+    color: var(--gray-800);
+    transition: border-color 0.2s;
+  }
+
+  .key-input:focus { border-color: var(--blue); }
+
+  .key-submit {
+    padding: 13px 20px;
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .key-submit:hover { background: var(--blue-dark); }
+
+  .modal-alert {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+  }
+
+  .modal-alert.show { display: block; }
+  .modal-alert.error { background: #fff5f5; color: var(--error); border: 1px solid #fed7d7; }
+  .modal-alert.success { background: #f0fff4; color: var(--success); border: 1px solid #c6f6d5; }
+
+  /* ── ANIMATIONS ──────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .content > * {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .content > *:nth-child(1) { animation-delay: 0.05s; }
+  .content > *:nth-child(2) { animation-delay: 0.1s; }
+  .content > *:nth-child(3) { animation-delay: 0.15s; }
+  .content > *:nth-child(4) { animation-delay: 0.2s; }
+  .content > *:nth-child(5) { animation-delay: 0.25s; }
+
+  /* ── RESPONSIVE ──────────────────────────────────── */
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .hamburger { display: block; }
+    .quick-grid { grid-template-columns: repeat(2, 1fr); }
+    .subjects-grid { grid-template-columns: 1fr; }
+    .hero-right { display: none; }
+    .countdown-strip { display: none; }
+  }
+
+  @media (max-width: 600px) {
+    .content { padding: 16px; }
+    .quick-grid { grid-template-columns: 1fr 1fr; }
+    .hero-banner { padding: 24px 20px; }
+    .hero-left h2 { font-size: 22px; }
+  }
+
+  .loading-skeleton {
+    background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-50) 50%, var(--gray-100) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-badge">
+      <div class="logo-icon" id="uni-logo">OAU</div>
+      <div class="logo-text">
+        <h3 id="uni-full-name">Obafemi Awolowo</h3>
+        <p>Post UTME CBT Portal</p>
+      </div>
+    </div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Main</div>
+    <a class="nav-item active" href="dashboard.html">
+      <div class="nav-icon">🏠</div> Dashboard
+    </a>
+    <a class="nav-item" href="exam.html">
+      <div class="nav-icon">🖥️</div> Examine Yourself
+    </a>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">❓</div> Past Questions
+    </a>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">🔖</div> Saved Questions
+    </a>
+
+    <div class="nav-section-label">Progress</div>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">📊</div> Performance
+    </a>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">🏆</div> My Results
+    </a>
+
+    <div class="nav-section-label">Account</div>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">💳</div> Payments
+    </a>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">🔔</div> Notifications
+      <span class="nav-badge">2</span>
+    </a>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">⚙️</div> Profile Settings
+    </a>
+    <a class="nav-item" href="#">
+      <div class="nav-icon">❓</div> Help & Support
+    </a>
+    <a class="nav-item" href="#" onclick="handleLogout()">
+      <div class="nav-icon">🚪</div> Logout
+    </a>
+  </nav>
+
+  <div class="sidebar-promo">
+    <h4>Prepare Smart. Score High.</h4>
+    <p>Practice, analyze and improve your performance daily.</p>
+    <button class="promo-btn" onclick="window.location.href='exam.html'">Explore Now →</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="search-bar">
+      <span>🔍</span>
+      <input type="text" placeholder="Search for anything...">
+    </div>
+    <div class="topbar-right">
+      <div class="notif-btn">
+        🔔
+        <div class="notif-dot"></div>
+      </div>
+      <div class="user-chip">
+        <div class="user-avatar" id="avatar-initials">JD</div>
+        <div class="user-info">
+          <div class="user-name" id="topbar-name">Loading...</div>
+          <div class="user-uni" id="topbar-uni">OAU</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- HERO BANNER -->
+    <div class="hero-banner">
+      <div class="hero-left">
+        <p>Welcome back,</p>
+        <h2 id="hero-name">John Doe 👋</h2>
+        <p class="tagline">Let's get you exam-ready. Keep practising and achieve your best.</p>
+        <div class="hero-actions">
+          <button class="hero-btn primary" onclick="window.location.href='exam.html'">Continue Practice →</button>
+          <button class="hero-btn outline">📈 View Performance</button>
+        </div>
+      </div>
+      <div class="hero-right">
+        <div class="progress-card">
+          <div class="progress-ring">
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle class="bg" cx="40" cy="40" r="34" fill="none" stroke-width="7"/>
+              <circle class="fill" id="progress-circle" cx="40" cy="40" r="34" fill="none" stroke-width="7"
+                stroke-dasharray="213.6"
+                stroke-dashoffset="213.6"/>
+            </svg>
+            <div class="progress-pct" id="progress-pct">0%</div>
+          </div>
+          <div class="prog-label">Your Progress</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.5); margin-top:2px;">Keep it up!</div>
+        </div>
+
+        <div class="countdown-strip">
+          <div class="cd-label">Your Exam<br>Starts In</div>
+          <div class="cd-units">
+            <div class="cd-unit">
+              <div class="cd-num" id="cd-days">00</div>
+              <div class="cd-tag">Days</div>
+            </div>
+            <div class="cd-sep">:</div>
+            <div class="cd-unit">
+              <div class="cd-num" id="cd-hours">00</div>
+              <div class="cd-tag">Hours</div>
+            </div>
+            <div class="cd-sep">:</div>
+            <div class="cd-unit">
+              <div class="cd-num" id="cd-mins">00</div>
+              <div class="cd-tag">Mins</div>
+            </div>
+            <div class="cd-sep">:</div>
+            <div class="cd-unit">
+              <div class="cd-num" id="cd-secs">00</div>
+              <div class="cd-tag">Secs</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px; color:rgba(255,255,255,0.5);">Exam Date</div>
+            <div style="font-size:12px; color:white; font-weight:600;">15 Aug, 2025</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVATION BANNER (shown if not activated) -->
+    <div class="activation-banner" id="activation-banner" style="display:none;">
+      <div class="ab-icon">🔑</div>
+      <div class="ab-text">
+        <h4>Unlock Full Access</h4>
+        <p>You're on free preview (3 questions/subject). Enter your activation key to access all 7,000+ questions.</p>
+      </div>
+      <button class="activate-btn" onclick="showActivationModal()">Activate Now</button>
+    </div>
+
+    <!-- QUICK ACCESS -->
+    <div class="section-header">
+      <h3>Quick Access</h3>
+      <a class="view-all" href="#">View all →</a>
+    </div>
+
+    <div class="quick-grid">
+      <div class="quick-card" onclick="window.location.href='exam.html'">
+        <div class="qc-icon blue">🖥️</div>
+        <div class="qc-title">Examine Yourself</div>
+        <div class="qc-desc">Start a new practice session.</div>
+        <div class="qc-arrow">→</div>
+      </div>
+      <div class="quick-card">
+        <div class="qc-icon purple">❓</div>
+        <div class="qc-title">Past Questions</div>
+        <div class="qc-desc">Practice with previous years questions.</div>
+        <div class="qc-arrow">→</div>
+      </div>
+      <div class="quick-card">
+        <div class="qc-icon green">🔖</div>
+        <div class="qc-title">Saved Questions</div>
+        <div class="qc-desc">View your saved questions.</div>
+        <div class="qc-arrow">→</div>
+      </div>
+      <div class="quick-card">
+        <div class="qc-icon orange">📊</div>
+        <div class="qc-title">Performance Record</div>
+        <div class="qc-desc">Track your progress and improvement.</div>
+        <div class="qc-arrow">→</div>
+      </div>
+      <div class="quick-card">
+        <div class="qc-icon red">🏆</div>
+        <div class="qc-title">My Results</div>
+        <div class="qc-desc">Check your mock test results.</div>
+        <div class="qc-arrow">→</div>
+      </div>
+      <div class="quick-card">
+        <div class="qc-icon teal">💳</div>
+        <div class="qc-title">Payments</div>
+        <div class="qc-desc">View your payment history and status.</div>
+        <div class="qc-arrow">→</div>
+      </div>
+    </div>
+
+    <!-- SUBJECTS -->
+    <div class="section-header">
+      <h3>Your Subjects</h3>
+      <a class="view-all" href="#">View all →</a>
+    </div>
+
+    <div class="subjects-grid" id="subjects-grid">
+      <!-- Loaded dynamically -->
+      <div class="subject-card">
+        <div class="subj-icon loading-skeleton" style="width:46px;height:46px;"></div>
+        <div class="subj-info">
+          <div class="loading-skeleton" style="width:100px;height:14px;margin-bottom:8px;"></div>
+          <div class="loading-skeleton" style="width:60px;height:12px;"></div>
+        </div>
+      </div>
+      <div class="subject-card">
+        <div class="subj-icon loading-skeleton" style="width:46px;height:46px;"></div>
+        <div class="subj-info">
+          <div class="loading-skeleton" style="width:100px;height:14px;margin-bottom:8px;"></div>
+          <div class="loading-skeleton" style="width:60px;height:12px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT ACTIVITY -->
+    <div class="section-header">
+      <h3>Recent Activity</h3>
+      <a class="view-all" href="#">View all →</a>
+    </div>
+
+    <div class="activity-list">
+      <div class="activity-card">
+        <div class="activity-img">📢</div>
+        <div class="activity-text">
+          <h4>What You Should Know</h4>
+          <div class="activity-meta">
+            <span>Posted: 31 May 2025</span>
+            <span class="dot"></span>
+            <span>General Information</span>
+          </div>
+          <p>Important updates and guidelines for all Post UTME candidates.</p>
+        </div>
+        <button class="read-more-btn">Read More →</button>
+      </div>
+      <div class="activity-card">
+        <div class="activity-img">🏫</div>
+        <div class="activity-text">
+          <h4>List of Courses Offered</h4>
+          <div class="activity-meta">
+            <span>Posted: 31 May 2025</span>
+            <span class="dot"></span>
+            <span>Special Information</span>
+          </div>
+          <p>See all undergraduate programs and departments available.</p>
+        </div>
+        <button class="read-more-btn">Read More →</button>
+      </div>
+    </div>
+
+    <!-- FOOTER BANNER -->
+    <div class="footer-banner">
+      <div class="fb-left">
+        <div class="fb-icon">🛡️</div>
+        <div>
+          <h4>Stay Consistent, Stay Ahead</h4>
+          <p>The more you practice today, the better you perform tomorrow.</p>
+        </div>
+      </div>
+      <button class="start-btn" onclick="window.location.href='exam.html'">Start Practising Now →</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ACTIVATION MODAL -->
+<div class="modal-overlay" id="activation-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeActivationModal()">✕</button>
+    <div style="font-size:36px;margin-bottom:12px;">🔑</div>
+    <h3>Enter Activation Key</h3>
+    <p>Enter the activation key provided to you to unlock full access to all questions.</p>
+    <div class="key-input-wrap">
+      <input type="text" class="key-input" id="activation-key-input" placeholder="XXXX-XXXX-XXXX" maxlength="20">
+      <button class="key-submit" onclick="submitActivationKey()" id="key-submit-btn">Activate</button>
+    </div>
+    <div class="modal-alert" id="modal-alert"></div>
+  </div>
+</div>
+
+<script>
+  // ── SUPABASE ───────────────────────────────────────────────────
+  const SUPABASE_URL = 'https://xdixrqlhctisthfdvzvn.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let currentUser = null;
+  let userProfile = null;
+
+  // ── INIT ───────────────────────────────────────────────────────
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'postutme-auth.html'; return; }
+
+    currentUser = session.user;
+    const meta = currentUser.user_metadata;
+
+    const name = meta.full_name || 'Student';
+    const uni = meta.university || 'OAU';
+    const isActivated = meta.is_activated || false;
+
+    // Update UI
+    const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    document.getElementById('avatar-initials').textContent = initials;
+    document.getElementById('topbar-name').textContent = name;
+    document.getElementById('topbar-uni').textContent = uni;
+    document.getElementById('hero-name').textContent = name + ' 👋';
+    document.getElementById('uni-logo').textContent = uni;
+    document.getElementById('uni-full-name').textContent = uni === 'OAU' ? 'Obafemi Awolowo' : 'University of Ibadan';
+
+    // Show activation banner if not activated
+    if (!isActivated) {
+      document.getElementById('activation-banner').style.display = 'flex';
+    }
+
+    // Animate progress (mock 68%)
+    animateProgress(68);
+
+    // Start countdown
+    startCountdown(new Date('2025-08-15T09:00:00'));
+
+    // Load subjects
+    loadSubjects(uni);
+  }
+
+  // ── PROGRESS ANIMATION ─────────────────────────────────────────
+  function animateProgress(pct) {
+    const circumference = 213.6;
+    const offset = circumference - (pct / 100) * circumference;
+    const circle = document.getElementById('progress-circle');
+    const label = document.getElementById('progress-pct');
+
+    setTimeout(() => {
+      circle.style.strokeDashoffset = offset;
+      let current = 0;
+      const step = pct / 60;
+      const interval = setInterval(() => {
+        current = Math.min(current + step, pct);
+        label.textContent = Math.round(current) + '%';
+        if (current >= pct) clearInterval(interval);
+      }, 16);
+    }, 500);
+  }
+
+  // ── COUNTDOWN ─────────────────────────────────────────────────
+  function startCountdown(examDate) {
+    function update() {
+      const now = new Date();
+      const diff = examDate - now;
+      if (diff <= 0) return;
+
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+
+      document.getElementById('cd-days').textContent = String(days).padStart(2, '0');
+      document.getElementById('cd-hours').textContent = String(hours).padStart(2, '0');
+      document.getElementById('cd-mins').textContent = String(mins).padStart(2, '0');
+      document.getElementById('cd-secs').textContent = String(secs).padStart(2, '0');
+    }
+
+    update();
+    setInterval(update, 1000);
+  }
+
+  // ── LOAD SUBJECTS ──────────────────────────────────────────────
+  async function loadSubjects(uni) {
+    const grid = document.getElementById('subjects-grid');
+
+    try {
+      const { data, error } = await sb
+        .from('subjects')
+        .select('*')
+        .eq('university', uni)
+        .order('name');
+
+      if (error || !data || data.length === 0) {
+        // Show default subjects if none in DB yet
+        renderSubjects(getDefaultSubjects(uni));
+        return;
+      }
+
+      renderSubjects(data);
+    } catch (e) {
+      renderSubjects(getDefaultSubjects(uni));
+    }
+  }
+
+  function getDefaultSubjects(uni) {
+    const base = [
+      { name: 'English Language', icon: '📝', color: '#ebf4ff', question_count: 0 },
+      { name: 'Mathematics', icon: '📐', color: '#f0fff4', question_count: 0 },
+      { name: 'Biology', icon: '🧬', color: '#fff0f0', question_count: 0 },
+      { name: 'Chemistry', icon: '⚗️', color: '#fffbeb', question_count: 0 },
+      { name: 'Physics', icon: '⚡', color: '#f0f4ff', question_count: 0 },
+      { name: 'Economics', icon: '📈', color: '#f0fffe', question_count: 0 },
+    ];
+    return base;
+  }
+
+  function renderSubjects(subjects) {
+    const grid = document.getElementById('subjects-grid');
+    const colors = ['#ebf4ff','#f0fff4','#fff0f0','#fffbeb','#f0f4ff','#f0fffe','#fdf4ff'];
+    const icons = ['📝','📐','🧬','⚗️','⚡','📈','📖','🔬'];
+
+    grid.innerHTML = subjects.map((s, i) => `
+      <div class="subject-card" onclick="startExam('${s.id || s.name}')">
+        <div class="subj-icon" style="background:${s.color || colors[i % colors.length]}">
+          ${s.icon || icons[i % icons.length]}
+        </div>
+        <div class="subj-info">
+          <div class="subj-name">${s.name}</div>
+          <div class="subj-count">${s.question_count || 0} questions</div>
+          <div class="subj-progress-bar">
+            <div class="subj-progress-fill" style="width:${Math.random()*60+10}%"></div>
+          </div>
+        </div>
+        <div class="subj-arrow">→</div>
+      </div>
+    `).join('');
+  }
+
+  function startExam(subjectId) {
+    window.location.href = `exam.html?subject=${subjectId}`;
+  }
+
+  // ── ACTIVATION MODAL ───────────────────────────────────────────
+  function showActivationModal() {
+    document.getElementById('activation-modal').classList.add('show');
+  }
+
+  function closeActivationModal() {
+    document.getElementById('activation-modal').classList.remove('show');
+    document.getElementById('activation-key-input').value = '';
+    document.getElementById('modal-alert').className = 'modal-alert';
+  }
+
+  function showModalAlert(msg, type) {
+    const el = document.getElementById('modal-alert');
+    el.textContent = msg;
+    el.className = 'modal-alert show ' + type;
+  }
+
+  async function submitActivationKey() {
+    const key = document.getElementById('activation-key-input').value.trim().toUpperCase();
+    if (!key) return showModalAlert('Please enter your activation key.', 'error');
+
+    const btn = document.getElementById('key-submit-btn');
+    btn.textContent = '...';
+    btn.disabled = true;
+
+    try {
+      // Check if key exists and is unused
+      const { data, error } = await sb
+        .from('activation_keys')
+        .select('*')
+        .eq('key', key)
+        .eq('is_used', false)
+        .single();
+
+      if (error || !data) {
+        showModalAlert('Invalid or already used key. Please check and try again.', 'error');
+        return;
+      }
+
+      // Mark key as used
+      await sb.from('activation_keys').update({
+        is_used: true,
+        used_by: currentUser.id,
+        used_at: new Date().toISOString()
+      }).eq('key', key);
+
+      // Update user metadata
+      await sb.auth.updateUser({
+        data: { is_activated: true }
+      });
+
+      showModalAlert('🎉 Account activated! You now have full access.', 'success');
+      document.getElementById('activation-banner').style.display = 'none';
+
+      setTimeout(closeActivationModal, 2000);
+
+    } catch (err) {
+      showModalAlert('Something went wrong. Please try again.', 'error');
+    } finally {
+      btn.textContent = 'Activate';
+      btn.disabled = false;
+    }
+  }
+
+  // ── SIDEBAR TOGGLE ─────────────────────────────────────────────
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+
+  // ── LOGOUT ─────────────────────────────────────────────────────
+  async function handleLogout() {
+    await sb.auth.signOut();
+    window.location.href = 'postutme-auth.html';
+  }
+
+  // ── START ──────────────────────────────────────────────────────
+  init();
+</script>
+</body>
+</html>
