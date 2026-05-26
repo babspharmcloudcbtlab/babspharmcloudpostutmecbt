@@ -540,80 +540,23 @@
   /* RESPONSIVE */
   @media (max-width: 900px) {
     body {
-      flex-direction: row;
+      flex-direction: column;
       overflow-y: auto;
-      overflow-x: hidden;
-      height: 100vh;
+      background: white;
     }
-
-    .left-panel {
-      width: 45% !important;
-      min-width: 45%;
-      min-height: 100vh;
-      padding: 30px 16px;
-      overflow-y: auto;
-    }
-
-    .left-content h1 {
-      font-size: 18px;
-    }
-
-    .left-content p {
-      font-size: 12px;
-    }
-
-    .stats-row {
-      gap: 8px;
-    }
-
-    .stat-card {
-      padding: 12px 8px;
-    }
-
-    .stat-card .number {
-      font-size: 18px;
-    }
-
-    .feature-list {
-      margin-top: 24px;
-      gap: 10px;
-    }
-
-    .feature-item {
-      font-size: 11px;
-    }
-
-    .uni-logo {
-      width: 48px;
-      height: 48px;
-      font-size: 14px;
-    }
-
-    .dots-grid {
-      top: 20px;
-      right: 20px;
-    }
-
+    .left-panel { display: none !important; }
+    .mobile-top-bar { display: none !important; }
     .right-panel {
-      width: 55% !important;
-      min-width: 55%;
-      padding: 24px 16px;
-      overflow-y: auto;
-      justify-content: flex-start;
-      align-items: flex-start;
+      width: 100% !important;
+      min-height: 100vh;
+      padding: 48px 24px 40px;
+      justify-content: center;
+      align-items: center;
+      background: white;
     }
-
     .auth-box {
-      max-width: 100%;
+      max-width: 440px;
       width: 100%;
-    }
-
-    .auth-header h2 {
-      font-size: 20px;
-    }
-
-    .mobile-top-bar {
-      display: none !important;
     }
   }
 
