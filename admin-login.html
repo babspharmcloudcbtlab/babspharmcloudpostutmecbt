@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Login — Post UTME CBT Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --blue: #1a3bbd;
+    --blue-dark: #122894;
+    --blue-light: #2d52e0;
+    --gold: #f5a623;
+    --gray-50: #f8f9fc;
+    --gray-100: #eef0f7;
+    --gray-200: #d8dce8;
+    --gray-400: #8b92a9;
+    --gray-600: #4a5068;
+    --gray-800: #1e2235;
+    --error: #e53e3e;
+    --success: #38a169;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: linear-gradient(145deg, #0a1560 0%, #1a3bbd 50%, #0f2299 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .login-card {
+    background: white;
+    border-radius: 24px;
+    padding: 48px 40px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.3);
+  }
+
+  .admin-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+
+  .badge-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-light));
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    box-shadow: 0 8px 24px rgba(26,59,189,0.35);
+  }
+
+  .login-header { text-align: center; margin-bottom: 32px; }
+
+  .login-header h1 {
+    font-family: 'Sora', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--gray-800);
+    margin-bottom: 6px;
+  }
+
+  .login-header p { font-size: 14px; color: var(--gray-400); }
+
+  .admin-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(229,62,62,0.08);
+    color: var(--error);
+    border: 1px solid rgba(229,62,62,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .form-group { margin-bottom: 18px; }
+
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-600);
+    margin-bottom: 8px;
+  }
+
+  .input-wrap { position: relative; }
+
+  .input-wrap input {
+    width: 100%;
+    padding: 13px 16px 13px 44px;
+    border: 1.5px solid var(--gray-200);
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--gray-800);
+    background: var(--gray-50);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+
+  .input-wrap input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(26,59,189,0.08);
+    background: white;
+  }
+
+  .input-icon {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--gray-400);
+  }
+
+  .toggle-pw {
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    cursor: pointer; font-size: 16px;
+    color: var(--gray-400);
+  }
+
+  .alert {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 18px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .alert.show { display: flex; }
+  .alert.error { background: #fff5f5; border: 1px solid #fed7d7; color: var(--error); }
+  .alert.success { background: #f0fff4; border: 1px solid #c6f6d5; color: var(--success); }
+
+  .login-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-light));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Sora', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+
+  .login-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(26,59,189,0.35);
+  }
+
+  .login-btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+  .back-link {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--gray-400);
+  }
+
+  .back-link a { color: var(--blue); font-weight: 600; text-decoration: none; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="admin-badge">
+    <div class="badge-icon">⚙️</div>
+  </div>
+
+  <div class="login-header">
+    <div class="admin-tag">🔐 Admin Access Only</div>
+    <h1>Admin Portal</h1>
+    <p>Sign in to manage the Post UTME CBT platform</p>
+  </div>
+
+  <div class="alert" id="alert-box">
+    <span id="alert-icon">⚠️</span>
+    <span id="alert-msg"></span>
+  </div>
+
+  <div class="form-group">
+    <label>Admin Email</label>
+    <div class="input-wrap">
+      <span class="input-icon">✉️</span>
+      <input type="email" id="admin-email" placeholder="Enter admin email">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Password</label>
+    <div class="input-wrap">
+      <span class="input-icon">🔒</span>
+      <input type="password" id="admin-password" placeholder="Enter your password">
+      <button class="toggle-pw" onclick="togglePw()">👁️</button>
+    </div>
+  </div>
+
+  <button class="login-btn" id="login-btn" onclick="handleAdminLogin()">
+    Sign In to Admin Panel →
+  </button>
+
+  <div class="back-link">
+    <a href="index.html">← Back to Student Portal</a>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://xdixrqlhctisthfdvzvn.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  function showAlert(msg, type = 'error') {
+    const box = document.getElementById('alert-box');
+    document.getElementById('alert-msg').textContent = msg;
+    document.getElementById('alert-icon').textContent = type === 'error' ? '⚠️' : '✅';
+    box.className = 'alert show ' + type;
+  }
+
+  function togglePw() {
+    const input = document.getElementById('admin-password');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+
+  async function handleAdminLogin() {
+    const email = document.getElementById('admin-email').value.trim();
+    const password = document.getElementById('admin-password').value;
+
+    if (!email || !password) return showAlert('Please fill in all fields.');
+
+    const btn = document.getElementById('login-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Signing in...';
+
+    try {
+      // Sign in
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+
+      // Check if user is admin
+      const { data: adminData, error: adminError } = await sb
+        .from('admins')
+        .select('id')
+        .eq('id', data.user.id)
+        .single();
+
+      if (adminError || !adminData) {
+        await sb.auth.signOut();
+        throw new Error('Access denied. You are not an admin.');
+      }
+
+      showAlert('Login successful! Redirecting...', 'success');
+      setTimeout(() => { window.location.href = 'admin-dashboard.html'; }, 1200);
+
+    } catch (err) {
+      showAlert(err.message || 'Login failed. Please try again.');
+      btn.disabled = false;
+      btn.innerHTML = 'Sign In to Admin Panel →';
+    }
+  }
+
+  // Enter key support
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleAdminLogin();
+  });
+
+  // Check if already logged in as admin
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      const { data } = await sb.from('admins').select('id').eq('id', session.user.id).single();
+      if (data) window.location.href = 'admin-dashboard.html';
+    }
+  })();
+</script>
+</body>
+</html>
