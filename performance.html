@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Performance — Post UTME CBT Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--blue:#1a3bbd;--blue-dark:#122894;--blue-light:#2d52e0;--gold:#f5a623;--gray-50:#f8f9fc;--gray-100:#eef0f7;--gray-200:#d8dce8;--gray-400:#8b92a9;--gray-600:#4a5068;--gray-800:#1e2235;--success:#38a169;--error:#e53e3e;--sidebar-w:240px;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh;display:flex;}
+  .sidebar{width:var(--sidebar-w);background:white;height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;border-right:1px solid var(--gray-100);z-index:100;transition:transform 0.3s;overflow-y:auto;}
+  .sidebar-logo{padding:20px 16px;border-bottom:1px solid var(--gray-100);}
+  .logo-badge{display:flex;align-items:center;gap:10px;}
+  .logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--blue),var(--blue-light));border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:12px;color:white;}
+  .logo-text h3{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--gray-800);}
+  .logo-text p{font-size:10px;color:var(--gray-400);}
+  .nav-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gray-400);padding:8px 8px 4px;margin-top:6px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:10px;cursor:pointer;transition:all 0.15s;color:var(--gray-600);font-size:13px;font-weight:500;margin-bottom:2px;text-decoration:none;}
+  .nav-item:hover{background:var(--gray-50);color:var(--gray-800);}
+  .nav-item.active{background:rgba(26,59,189,0.08);color:var(--blue);font-weight:600;}
+  .nav-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--gray-100);flex-shrink:0;}
+  .nav-item.active .nav-icon{background:rgba(26,59,189,0.12);}
+  .nav-badge{margin-left:auto;background:var(--blue);color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;}
+  .sidebar-promo{margin:12px;background:linear-gradient(135deg,var(--blue),var(--blue-light));border-radius:14px;padding:16px 14px;color:white;}
+  .sidebar-promo h4{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;margin-bottom:4px;}
+  .sidebar-promo p{font-size:11px;opacity:0.8;line-height:1.4;margin-bottom:10px;}
+  .promo-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;padding:7px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;width:100%;font-family:'DM Sans',sans-serif;}
+  .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;}
+  .topbar{height:58px;background:white;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:50;}
+  .hamburger{display:none;background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray-600);}
+  .topbar-title{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;}
+  .topbar-right{margin-left:auto;}
+  .user-chip{display:flex;align-items:center;gap:8px;background:var(--gray-50);border:1.5px solid var(--gray-100);border-radius:10px;padding:5px 10px 5px 5px;}
+  .user-avatar{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--blue-light));display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:white;}
+  .user-name{font-size:12px;font-weight:600;color:var(--gray-800);}
+  .content{padding:24px;flex:1;}
+
+  /* OVERALL SCORE */
+  .overall-card{background:linear-gradient(135deg,#0f2299,#1a3bbd,#1e4dd8);border-radius:20px;padding:28px;margin-bottom:24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
+  .overall-ring{position:relative;width:100px;height:100px;flex-shrink:0;}
+  .overall-ring svg{transform:rotate(-90deg);}
+  .ring-bg{stroke:rgba(255,255,255,0.15);}
+  .ring-fill{stroke:var(--gold);stroke-linecap:round;transition:stroke-dashoffset 1.2s ease;}
+  .ring-pct{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:white;}
+  .overall-info{flex:1;}
+  .overall-info h2{font-family:'Sora',sans-serif;font-size:22px;font-weight:800;color:white;margin-bottom:6px;}
+  .overall-info p{color:rgba(255,255,255,0.7);font-size:14px;margin-bottom:16px;}
+  .overall-stats{display:flex;gap:20px;flex-wrap:wrap;}
+  .ov-stat{text-align:center;}
+  .ov-stat .num{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:var(--gold);}
+  .ov-stat .lbl{font-size:11px;color:rgba(255,255,255,0.6);}
+
+  /* SUBJECT PERFORMANCE */
+  .section-title{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;color:var(--gray-800);margin-bottom:14px;}
+  .subjects-perf{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px;}
+  .subj-perf-card{background:white;border-radius:14px;padding:18px;border:1.5px solid var(--gray-100);transition:all 0.2s;}
+  .subj-perf-card:hover{border-color:var(--blue);box-shadow:0 4px 14px rgba(26,59,189,0.08);}
+  .sp-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .sp-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+  .sp-name{font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:var(--gray-800);}
+  .sp-attempts{font-size:11px;color:var(--gray-400);margin-top:2px;}
+  .sp-score{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;margin-left:auto;}
+  .sp-score.good{color:var(--success);}
+  .sp-score.mid{color:var(--gold);}
+  .sp-score.low{color:var(--error);}
+  .sp-bar{height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;}
+  .sp-fill{height:100%;border-radius:3px;transition:width 1s ease;}
+  .sp-fill.good{background:var(--success);}
+  .sp-fill.mid{background:var(--gold);}
+  .sp-fill.low{background:var(--error);}
+  .sp-bottom{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--gray-400);}
+
+  /* TIPS */
+  .tips-card{background:white;border-radius:16px;padding:20px;border:1.5px solid var(--gray-100);}
+  .tips-card h3{font-family:'Sora',sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;}
+  .tip-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--gray-100);}
+  .tip-item:last-child{border-bottom:none;}
+  .tip-icon{font-size:20px;flex-shrink:0;}
+  .tip-text{font-size:13px;color:var(--gray-600);line-height:1.5;}
+
+  .empty-state{text-align:center;padding:60px 20px;color:var(--gray-400);}
+  .empty-icon{font-size:48px;margin-bottom:12px;}
+  .empty-state h3{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:var(--gray-600);margin-bottom:8px;}
+  .start-btn{padding:12px 24px;background:var(--blue);color:white;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:12px;}
+
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;cursor:pointer;}
+  .sidebar-overlay.show{display:block;}
+
+  @media(max-width:900px){
+    .sidebar{transform:translateX(-100%);}
+    .sidebar.open{transform:translateX(0);box-shadow:6px 0 24px rgba(0,0,0,0.2);}
+    .main{margin-left:0;}
+    .hamburger{display:block;}
+    .content{padding:16px;}
+    .subjects-perf{grid-template-columns:1fr;}
+    .overall-card{flex-direction:column;text-align:center;}
+    .overall-stats{justify-content:center;}
+  }
+</style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-badge">
+      <div class="logo-icon" id="uni-logo">OAU</div>
+      <div class="logo-text"><h3 id="uni-name">Obafemi Awolowo</h3><p>Post UTME CBT Portal</p></div>
+    </div>
+  </div>
+  <nav style="flex:1;padding:12px 10px;overflow-y:auto;">
+    <div class="nav-section-label">Main</div>
+    <a class="nav-item" href="dashboard.html"><div class="nav-icon">🏠</div> Dashboard</a>
+    <a class="nav-item" href="exam.html"><div class="nav-icon">🖥️</div> Examine Yourself</a>
+    <a class="nav-item" href="past-questions.html"><div class="nav-icon">❓</div> Past Questions</a>
+    <a class="nav-item" href="saved.html"><div class="nav-icon">🔖</div> Saved Questions</a>
+    <div class="nav-section-label">Progress</div>
+    <a class="nav-item active" href="performance.html"><div class="nav-icon">📊</div> Performance</a>
+    <a class="nav-item" href="results.html"><div class="nav-icon">🏆</div> My Results</a>
+    <div class="nav-section-label">Account</div>
+    <a class="nav-item" href="payments.html"><div class="nav-icon">💳</div> Payments</a>
+    <a class="nav-item" href="notifications.html"><div class="nav-icon">🔔</div> Notifications</a>
+    <a class="nav-item" href="profile.html"><div class="nav-icon">⚙️</div> Profile Settings</a>
+    <a class="nav-item" href="#" onclick="handleLogout()"><div class="nav-icon">🚪</div> Logout</a>
+  </nav>
+  <div class="sidebar-promo">
+    <h4>Prepare Smart. Score High.</h4>
+    <p>Practice daily to improve your performance.</p>
+    <button class="promo-btn" onclick="window.location.href='exam.html'">Explore Now →</button>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title">📊 Performance</div>
+    <div class="topbar-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="avatar">--</div>
+        <div class="user-name" id="uname">--</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content" id="main-content">
+    <div class="empty-state"><div class="empty-icon">⏳</div><h3>Loading...</h3></div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL='https://xdixrqlhctisthfdvzvn.supabase.co';
+  const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
+  const{createClient}=supabase;
+  const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+  const COLORS=['#ebf4ff','#f0fff4','#fff0f0','#fffbeb','#f0f4ff','#f0fffe'];
+  const ICONS=['📝','📐','🧬','⚗️','⚡','📈'];
+
+  async function init(){
+    const{data:{session}}=await sb.auth.getSession();
+    if(!session){window.location.href='index.html';return;}
+    const meta=session.user.user_metadata;
+    const name=meta.full_name||'Student';
+    const uni=meta.university||'OAU';
+    const initials=name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('avatar').textContent=initials;
+    document.getElementById('uname').textContent=name.split(' ')[0];
+    document.getElementById('uni-logo').textContent=uni;
+    document.getElementById('uni-name').textContent=uni==='OAU'?'Obafemi Awolowo':'University of Ibadan';
+
+    const{data,error}=await sb.from('results').select('*,subjects(name,icon,color)').eq('user_id',session.user.id).order('created_at',{ascending:false});
+
+    if(error||!data||data.length===0){
+      document.getElementById('main-content').innerHTML=`
+        <div class="empty-state">
+          <div class="empty-icon">📊</div>
+          <h3>No Performance Data Yet</h3>
+          <p>Take your first exam to see your performance analytics here.</p>
+          <button class="start-btn" onclick="window.location.href='exam.html'">Start Exam Now →</button>
+        </div>`;
+      return;
+    }
+
+    // Overall stats
+    const pcts=data.map(r=>r.total>0?Math.round((r.score/r.total)*100):0);
+    const avg=Math.round(pcts.reduce((a,b)=>a+b,0)/pcts.length);
+    const best=Math.max(...pcts);
+    const total=data.length;
+
+    // Group by subject
+    const bySubject={};
+    data.forEach(r=>{
+      const sid=r.subject_id;
+      if(!bySubject[sid])bySubject[sid]={subject:r.subjects,scores:[],results:[]};
+      bySubject[sid].scores.push(r.total>0?Math.round((r.score/r.total)*100):0);
+      bySubject[sid].results.push(r);
+    });
+
+    const circumference=282.7;
+    const offset=circumference-(avg/100)*circumference;
+
+    const tips=generateTips(avg,Object.values(bySubject));
+
+    document.getElementById('main-content').innerHTML=`
+      <div class="overall-card">
+        <div class="overall-ring">
+          <svg width="100" height="100" viewBox="0 0 100 100">
+            <circle class="ring-bg" cx="50" cy="50" r="45" fill="none" stroke-width="8"/>
+            <circle class="ring-fill" id="ring" cx="50" cy="50" r="45" fill="none" stroke-width="8"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${circumference}"/>
+          </svg>
+          <div class="ring-pct" id="ring-pct">0%</div>
+        </div>
+        <div class="overall-info">
+          <h2>Overall Performance</h2>
+          <p>${avg>=60?'Great job! Keep pushing to score higher.':avg>=40?'Good effort! Focus on weak subjects.':'Keep practising — you can do better!'}</p>
+          <div class="overall-stats">
+            <div class="ov-stat"><div class="num">${total}</div><div class="lbl">Exams Taken</div></div>
+            <div class="ov-stat"><div class="num">${best}%</div><div class="lbl">Best Score</div></div>
+            <div class="ov-stat"><div class="num">${avg}%</div><div class="lbl">Average</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title">Performance by Subject</div>
+      <div class="subjects-perf">
+        ${Object.values(bySubject).map((s,i)=>{
+          const subAvg=Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length);
+          const cls=subAvg>=60?'good':subAvg>=40?'mid':'low';
+          const subj=s.subject||{};
+          return`
+            <div class="subj-perf-card">
+              <div class="sp-top">
+                <div class="sp-icon" style="background:${subj.color||COLORS[i%COLORS.length]}">${subj.icon||ICONS[i%ICONS.length]}</div>
+                <div>
+                  <div class="sp-name">${subj.name||'Unknown'}</div>
+                  <div class="sp-attempts">${s.scores.length} attempt${s.scores.length!==1?'s':''}</div>
+                </div>
+                <div class="sp-score ${cls}">${subAvg}%</div>
+              </div>
+              <div class="sp-bar"><div class="sp-fill ${cls}" style="width:0%" data-width="${subAvg}"></div></div>
+              <div class="sp-bottom">
+                <span>Best: ${Math.max(...s.scores)}%</span>
+                <span>${subAvg>=60?'✅ Good':'⚠️ Needs Work'}</span>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+
+      <div class="tips-card">
+        <h3>💡 Improvement Tips</h3>
+        ${tips.map(t=>`<div class="tip-item"><div class="tip-icon">${t.icon}</div><div class="tip-text">${t.text}</div></div>`).join('')}
+      </div>
+    `;
+
+    // Animate ring
+    setTimeout(()=>{
+      document.getElementById('ring').style.strokeDashoffset=offset;
+      let cur=0;
+      const step=avg/60;
+      const iv=setInterval(()=>{cur=Math.min(cur+step,avg);document.getElementById('ring-pct').textContent=Math.round(cur)+'%';if(cur>=avg)clearInterval(iv);},16);
+      // Animate bars
+      document.querySelectorAll('.sp-fill').forEach(b=>{setTimeout(()=>{b.style.width=b.dataset.width+'%';},300);});
+    },200);
+  }
+
+  function generateTips(avg,subjects){
+    const tips=[];
+    if(avg<40)tips.push({icon:'🔥',text:'Your overall score needs improvement. Try practising at least 20 questions daily.'});
+    else if(avg<60)tips.push({icon:'💪',text:'You\'re making progress! Focus on your weakest subjects to push above 60%.'});
+    else tips.push({icon:'🏆',text:'Excellent performance! Maintain consistency and aim for 80%+ in all subjects.'});
+
+    const weak=subjects.filter(s=>{const avg=s.scores.reduce((a,b)=>a+b,0)/s.scores.length;return avg<50;});
+    if(weak.length>0)tips.push({icon:'📚',text:`Focus more on: ${weak.map(s=>s.subject?.name||'Unknown').join(', ')}. These subjects need more attention.`});
+
+    tips.push({icon:'⏱️',text:'Practice timed exams regularly to improve your speed and accuracy under pressure.'});
+    tips.push({icon:'🔄',text:'Review questions you got wrong — understanding mistakes is key to improvement.'});
+    return tips;
+  }
+
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('show');document.body.style.overflow=document.getElementById('sidebar').classList.contains('open')?'hidden':'';}
+  function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');document.body.style.overflow='';}
+  async function handleLogout(){await sb.auth.signOut();window.location.href='index.html';}
+  init();
+</script>
+</body>
+</html>

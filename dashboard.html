@@ -575,30 +575,30 @@
     <a class="nav-item" href="exam.html">
       <div class="nav-icon">🖥️</div> Examine Yourself
     </a>
-    <a class="nav-item" href="#">
+    <a class="nav-item" href="past-questions.html">
       <div class="nav-icon">❓</div> Past Questions
     </a>
-    <a class="nav-item" href="#">
+    <a class="nav-item" href="saved.html">
       <div class="nav-icon">🔖</div> Saved Questions
     </a>
 
     <div class="nav-section-label">Progress</div>
-    <a class="nav-item" href="#">
+    <a class="nav-item" href="performance.html">
       <div class="nav-icon">📊</div> Performance
     </a>
-    <a class="nav-item" href="#">
+    <a class="nav-item" href="results.html">
       <div class="nav-icon">🏆</div> My Results
     </a>
 
     <div class="nav-section-label">Account</div>
-    <a class="nav-item" href="#">
+    <a class="nav-item" href="payments.html">
       <div class="nav-icon">💳</div> Payments
     </a>
-    <a class="nav-item" href="#">
+    <a class="nav-item" href="notifications.html">
       <div class="nav-icon">🔔</div> Notifications
       <span class="nav-badge">2</span>
     </a>
-    <a class="nav-item" href="#">
+    <a class="nav-item" href="profile.html">
       <div class="nav-icon">⚙️</div> Profile Settings
     </a>
     <a class="nav-item" href="#">
@@ -652,7 +652,7 @@
         <p class="tagline">Let's get you exam-ready. Keep practising and achieve your best.</p>
         <div class="hero-actions">
           <button class="hero-btn primary" onclick="window.location.href='exam.html'">Continue Practice →</button>
-          <button class="hero-btn outline">📈 View Performance</button>
+          <button class="hero-btn outline" onclick="window.location.href='performance.html'">📈 View Performance</button>
         </div>
       </div>
       <div class="hero-right">
@@ -706,31 +706,31 @@
         <div class="qc-desc">Start a new practice session.</div>
         <div class="qc-arrow">→</div>
       </div>
-      <div class="quick-card">
+      <div class="quick-card" onclick="window.location.href='past-questions.html'">
         <div class="qc-icon purple">❓</div>
         <div class="qc-title">Past Questions</div>
         <div class="qc-desc">Practice with previous years questions.</div>
         <div class="qc-arrow">→</div>
       </div>
-      <div class="quick-card">
+      <div class="quick-card" onclick="window.location.href='saved.html'">
         <div class="qc-icon green">🔖</div>
         <div class="qc-title">Saved Questions</div>
         <div class="qc-desc">View your saved questions.</div>
         <div class="qc-arrow">→</div>
       </div>
-      <div class="quick-card">
+      <div class="quick-card" onclick="window.location.href='performance.html'">
         <div class="qc-icon orange">📊</div>
         <div class="qc-title">Performance Record</div>
         <div class="qc-desc">Track your progress and improvement.</div>
         <div class="qc-arrow">→</div>
       </div>
-      <div class="quick-card">
+      <div class="quick-card" onclick="window.location.href='results.html'">
         <div class="qc-icon red">🏆</div>
         <div class="qc-title">My Results</div>
         <div class="qc-desc">Check your mock test results.</div>
         <div class="qc-arrow">→</div>
       </div>
-      <div class="quick-card">
+      <div class="quick-card" onclick="window.location.href='payments.html'">
         <div class="qc-icon teal">💳</div>
         <div class="qc-title">Payments</div>
         <div class="qc-desc">View your payment history.</div>
@@ -756,33 +756,8 @@
       <a class="view-all" href="#">View all →</a>
     </div>
 
-    <div class="activity-list">
-      <div class="activity-card">
-        <div class="activity-img">📢</div>
-        <div class="activity-text">
-          <h4>What You Should Know</h4>
-          <div class="activity-meta">
-            <span>31 May 2025</span>
-            <span class="dot"></span>
-            <span>General Information</span>
-          </div>
-          <p>Important updates and guidelines for all Post UTME candidates.</p>
-        </div>
-        <button class="read-more-btn">Read More →</button>
-      </div>
-      <div class="activity-card">
-        <div class="activity-img">🏫</div>
-        <div class="activity-text">
-          <h4>List of Courses Offered</h4>
-          <div class="activity-meta">
-            <span>31 May 2025</span>
-            <span class="dot"></span>
-            <span>Special Information</span>
-          </div>
-          <p>See all undergraduate programs and departments available.</p>
-        </div>
-        <button class="read-more-btn">Read More →</button>
-      </div>
+    <div class="activity-list" id="activity-list">
+      <div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px;">Loading announcements...</div>
     </div>
 
     <!-- FOOTER BANNER -->
@@ -854,6 +829,9 @@
 
     // Load subjects
     loadSubjects(uni);
+
+    // Load announcements
+    loadAnnouncements();
   }
 
   async function loadRealProgress() {
@@ -1036,6 +1014,67 @@
   async function handleLogout() {
     await sb.auth.signOut();
     window.location.href = 'index.html';
+  }
+
+  async function loadAnnouncements() {
+    const container = document.getElementById('activity-list');
+    const uni = currentUser.user_metadata?.university || 'OAU';
+
+    try {
+      const { data, error } = await sb
+        .from('announcements')
+        .select('*')
+        .or(`university.eq.ALL,university.eq.${uni}`)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px;">No announcements yet.</div>`;
+        return;
+      }
+
+      const icons = {
+        'General Information': '📢',
+        'Special Information': '🏫',
+        'Urgent Notice': '🚨',
+        'Exam Update': '📝'
+      };
+
+      container.innerHTML = data.map(a => `
+        <div class="activity-card">
+          <div class="activity-img">${icons[a.category] || '📢'}</div>
+          <div class="activity-text">
+            <h4>${a.title}</h4>
+            <div class="activity-meta">
+              <span>${new Date(a.created_at).toLocaleDateString('en-NG',{day:'numeric',month:'short',year:'numeric'})}</span>
+              <span class="dot"></span>
+              <span>${a.category || 'General Information'}</span>
+            </div>
+            <p>${a.body.substring(0, 80)}${a.body.length > 80 ? '...' : ''}</p>
+          </div>
+          <button class="read-more-btn" onclick="showAnnouncement('${a.id}')">Read More →</button>
+        </div>
+      `).join('');
+
+    } catch(e) {
+      container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px;">Failed to load announcements.</div>`;
+    }
+  }
+
+  // Show full announcement in modal
+  function showAnnouncement(id) {
+    // Simple alert for now — can be a modal later
+    const ann = document.querySelector(`[onclick="showAnnouncement('${id}')"]`);
+    if (ann) {
+      const card = ann.closest('.activity-card');
+      const title = card.querySelector('h4').textContent;
+      const body = card.querySelector('p').textContent;
+      alert(`${title}
+
+${body}`);
+    }
   }
 
   init();

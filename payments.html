@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payments — Post UTME CBT Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--blue:#1a3bbd;--blue-light:#2d52e0;--gold:#f5a623;--gray-50:#f8f9fc;--gray-100:#eef0f7;--gray-200:#d8dce8;--gray-400:#8b92a9;--gray-600:#4a5068;--gray-800:#1e2235;--success:#38a169;--error:#e53e3e;--sidebar-w:240px;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh;display:flex;}
+  .sidebar{width:var(--sidebar-w);background:white;height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;border-right:1px solid var(--gray-100);z-index:100;transition:transform 0.3s;overflow-y:auto;}
+  .sidebar-logo{padding:20px 16px;border-bottom:1px solid var(--gray-100);}
+  .logo-badge{display:flex;align-items:center;gap:10px;}
+  .logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--blue),var(--blue-light));border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:12px;color:white;}
+  .logo-text h3{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--gray-800);}
+  .logo-text p{font-size:10px;color:var(--gray-400);}
+  .nav-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gray-400);padding:8px 8px 4px;margin-top:6px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer;transition:all 0.15s;color:var(--gray-600);font-size:13px;font-weight:500;margin-bottom:2px;text-decoration:none;}
+  .nav-item:hover{background:var(--gray-50);color:var(--gray-800);}
+  .nav-item.active{background:rgba(26,59,189,0.08);color:var(--blue);font-weight:600;}
+  .nav-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--gray-100);flex-shrink:0;}
+  .nav-item.active .nav-icon{background:rgba(26,59,189,0.12);}
+  .sidebar-promo{margin:12px;background:linear-gradient(135deg,var(--blue),var(--blue-light));border-radius:14px;padding:16px 14px;color:white;}
+  .sidebar-promo h4{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;margin-bottom:4px;}
+  .sidebar-promo p{font-size:11px;opacity:0.8;line-height:1.4;margin-bottom:10px;}
+  .promo-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;padding:7px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;width:100%;}
+  .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;}
+  .topbar{height:58px;background:white;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:50;}
+  .hamburger{display:none;background:none;border:none;font-size:20px;cursor:pointer;}
+  .topbar-title{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;}
+  .topbar-right{margin-left:auto;}
+  .user-chip{display:flex;align-items:center;gap:8px;background:var(--gray-50);border:1.5px solid var(--gray-100);border-radius:10px;padding:5px 10px 5px 5px;}
+  .user-avatar{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--blue-light));display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:white;}
+  .user-name{font-size:12px;font-weight:600;}
+  .content{padding:24px;flex:1;max-width:640px;}
+
+  /* STATUS CARD */
+  .status-card{border-radius:18px;padding:24px;margin-bottom:24px;}
+  .status-card.activated{background:linear-gradient(135deg,#064e3b,#065f46);}
+  .status-card.free{background:linear-gradient(135deg,#1a3bbd,#2d52e0);}
+  .status-icon{font-size:36px;margin-bottom:10px;}
+  .status-card h2{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;color:white;margin-bottom:6px;}
+  .status-card p{color:rgba(255,255,255,0.75);font-size:13px;line-height:1.6;margin-bottom:16px;}
+  .status-tag{display:inline-block;background:rgba(255,255,255,0.15);color:white;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,0.25);}
+
+  /* PLAN CARDS */
+  .plans-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}
+  .plan-card{background:white;border-radius:16px;padding:20px;border:2px solid var(--gray-100);transition:all 0.2s;position:relative;}
+  .plan-card.popular{border-color:var(--blue);}
+  .popular-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--blue);color:white;font-size:10px;font-weight:700;padding:3px 12px;border-radius:20px;white-space:nowrap;}
+  .plan-name{font-family:'Sora',sans-serif;font-size:14px;font-weight:700;color:var(--gray-800);margin-bottom:4px;}
+  .plan-price{font-family:'Sora',sans-serif;font-size:26px;font-weight:800;color:var(--blue);margin-bottom:4px;}
+  .plan-period{font-size:11px;color:var(--gray-400);}
+  .plan-features{margin:14px 0;display:flex;flex-direction:column;gap:6px;}
+  .plan-feature{font-size:12px;color:var(--gray-600);display:flex;align-items:center;gap:6px;}
+  .plan-btn{width:100%;padding:11px;background:linear-gradient(135deg,var(--blue),var(--blue-light));color:white;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;margin-top:8px;}
+  .plan-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(26,59,189,0.3);}
+  .plan-btn.outline{background:white;color:var(--blue);border:2px solid var(--blue);}
+  .plan-btn.outline:hover{background:var(--blue);color:white;}
+
+  /* HOW TO PAY */
+  .how-card{background:white;border-radius:16px;padding:20px;border:1.5px solid var(--gray-100);margin-bottom:16px;}
+  .how-card h3{font-family:'Sora',sans-serif;font-size:14px;font-weight:700;margin-bottom:14px;}
+  .step-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--gray-100);}
+  .step-item:last-child{border-bottom:none;}
+  .step-num{width:28px;height:28px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;flex-shrink:0;}
+  .step-text{font-size:13px;color:var(--gray-600);line-height:1.5;padding-top:4px;}
+
+  /* CONTACT */
+  .contact-card{background:rgba(26,59,189,0.05);border:1.5px solid rgba(26,59,189,0.15);border-radius:14px;padding:18px;display:flex;align-items:center;gap:14px;}
+  .contact-icon{font-size:28px;}
+  .contact-text h4{font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:var(--blue);margin-bottom:3px;}
+  .contact-text p{font-size:12px;color:var(--gray-600);}
+
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;cursor:pointer;}
+  .sidebar-overlay.show{display:block;}
+
+  @media(max-width:900px){
+    .sidebar{transform:translateX(-100%);}
+    .sidebar.open{transform:translateX(0);box-shadow:6px 0 24px rgba(0,0,0,0.2);}
+    .main{margin-left:0;}
+    .hamburger{display:block;}
+    .content{padding:16px;max-width:100%;}
+    .plans-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-badge">
+      <div class="logo-icon" id="uni-logo">OAU</div>
+      <div class="logo-text"><h3 id="uni-name">Obafemi Awolowo</h3><p>Post UTME CBT Portal</p></div>
+    </div>
+  </div>
+  <nav style="flex:1;padding:12px 10px;overflow-y:auto;">
+    <div class="nav-section-label">Main</div>
+    <a class="nav-item" href="dashboard.html"><div class="nav-icon">🏠</div> Dashboard</a>
+    <a class="nav-item" href="exam.html"><div class="nav-icon">🖥️</div> Examine Yourself</a>
+    <a class="nav-item" href="past-questions.html"><div class="nav-icon">❓</div> Past Questions</a>
+    <a class="nav-item" href="saved.html"><div class="nav-icon">🔖</div> Saved Questions</a>
+    <div class="nav-section-label">Progress</div>
+    <a class="nav-item" href="performance.html"><div class="nav-icon">📊</div> Performance</a>
+    <a class="nav-item" href="results.html"><div class="nav-icon">🏆</div> My Results</a>
+    <div class="nav-section-label">Account</div>
+    <a class="nav-item active" href="payments.html"><div class="nav-icon">💳</div> Payments</a>
+    <a class="nav-item" href="notifications.html"><div class="nav-icon">🔔</div> Notifications</a>
+    <a class="nav-item" href="profile.html"><div class="nav-icon">⚙️</div> Profile Settings</a>
+    <a class="nav-item" href="#" onclick="handleLogout()"><div class="nav-icon">🚪</div> Logout</a>
+  </nav>
+  <div class="sidebar-promo">
+    <h4>Prepare Smart. Score High.</h4>
+    <p>Practice daily to improve.</p>
+    <button class="promo-btn" onclick="window.location.href='exam.html'">Explore Now →</button>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title">💳 Payments</div>
+    <div class="topbar-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="avatar">--</div>
+        <div class="user-name" id="uname">--</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- STATUS -->
+    <div class="status-card free" id="status-card">
+      <div class="status-icon">⚡</div>
+      <h2 id="status-title">Free Preview</h2>
+      <p id="status-desc">You currently have access to 3 questions per subject. Get an activation key to unlock everything.</p>
+      <span class="status-tag" id="status-tag">Free Plan</span>
+    </div>
+
+    <!-- PLANS -->
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div class="plan-name">Free Preview</div>
+        <div class="plan-price">₦0</div>
+        <div class="plan-period">Forever free</div>
+        <div class="plan-features">
+          <div class="plan-feature">✅ 3 questions per subject</div>
+          <div class="plan-feature">✅ See your score</div>
+          <div class="plan-feature">❌ Full question bank</div>
+          <div class="plan-feature">❌ Past questions</div>
+        </div>
+        <button class="plan-btn outline" disabled>Current Plan</button>
+      </div>
+      <div class="plan-card popular">
+        <div class="popular-badge">⭐ Most Popular</div>
+        <div class="plan-name">Full Access</div>
+        <div class="plan-price">₦2,500</div>
+        <div class="plan-period">One-time payment</div>
+        <div class="plan-features">
+          <div class="plan-feature">✅ All questions</div>
+          <div class="plan-feature">✅ Past questions</div>
+          <div class="plan-feature">✅ Performance tracking</div>
+          <div class="plan-feature">✅ Unlimited exams</div>
+        </div>
+        <button class="plan-btn" onclick="window.location.href='dashboard.html'">Get Activation Key →</button>
+      </div>
+    </div>
+
+    <!-- HOW TO PAY -->
+    <div class="how-card">
+      <h3>💡 How to Get Full Access</h3>
+      <div class="step-item"><div class="step-num">1</div><div class="step-text">Contact the admin via WhatsApp or the details below to make payment.</div></div>
+      <div class="step-item"><div class="step-num">2</div><div class="step-text">After payment, you'll receive your unique activation key.</div></div>
+      <div class="step-item"><div class="step-num">3</div><div class="step-text">Go to your Dashboard and click "Activate Now" to enter the key.</div></div>
+      <div class="step-item"><div class="step-num">4</div><div class="step-text">Enjoy full access to all questions instantly!</div></div>
+    </div>
+
+    <!-- CONTACT -->
+    <div class="contact-card">
+      <div class="contact-icon">📱</div>
+      <div class="contact-text">
+        <h4>Contact Admin for Payment</h4>
+        <p>Reach out via WhatsApp or email to get your activation key after payment.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL='https://xdixrqlhctisthfdvzvn.supabase.co';
+  const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
+  const{createClient}=supabase;
+  const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+  async function init(){
+    const{data:{session}}=await sb.auth.getSession();
+    if(!session){window.location.href='index.html';return;}
+    const meta=session.user.user_metadata;
+    const name=meta.full_name||'Student';
+    const uni=meta.university||'OAU';
+    const isActivated=meta.is_activated||false;
+    document.getElementById('avatar').textContent=name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('uname').textContent=name.split(' ')[0];
+    document.getElementById('uni-logo').textContent=uni;
+    document.getElementById('uni-name').textContent=uni==='OAU'?'Obafemi Awolowo':'University of Ibadan';
+
+    if(isActivated){
+      const card=document.getElementById('status-card');
+      card.className='status-card activated';
+      document.getElementById('status-title').textContent='Full Access Active';
+      document.getElementById('status-desc').textContent='You have full access to all questions. Keep practising!';
+      document.getElementById('status-tag').textContent='✅ Activated';
+    }
+  }
+
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('show');document.body.style.overflow=document.getElementById('sidebar').classList.contains('open')?'hidden':'';}
+  function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');document.body.style.overflow='';}
+  async function handleLogout(){await sb.auth.signOut();window.location.href='index.html';}
+  init();
+</script>
+</body>
+</html>
