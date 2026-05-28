@@ -40,8 +40,8 @@
   .content { padding: 24px; flex: 1; }
 
   /* TABS */
-  .tab-bar { display: flex; background: white; border: 1.5px solid var(--gray-100); border-radius: 14px; padding: 4px; margin-bottom: 24px; width: fit-content; gap: 4px; }
-  .tab-btn { padding: 10px 24px; border-radius: 10px; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; color: var(--gray-400); cursor: pointer; transition: all 0.2s; }
+  .tab-bar { display: flex; background: white; border: 1.5px solid var(--gray-100); border-radius: 14px; padding: 4px; margin-bottom: 24px; width: 100%; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab-btn { padding: 10px 16px; border-radius: 10px; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--gray-400); cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; }
   .tab-btn.active { background: var(--blue); color: white; font-weight: 600; }
 
   /* PANELS */
@@ -163,8 +163,8 @@
     .content { padding: 16px; }
     .form-row { grid-template-columns: 1fr; }
     .options-grid { grid-template-columns: 1fr; }
-    .tab-bar { width: 100%; }
-    .tab-btn { flex: 1; text-align: center; padding: 10px 12px; font-size: 13px; }
+    .tab-bar { width: 100%; overflow-x: auto; }
+    .tab-btn { padding: 10px 14px; font-size: 12px; flex-shrink: 0; }
   }
 </style>
 </head>
@@ -177,7 +177,7 @@
     <div class="logo-icon">⚙️</div>
     <div class="logo-text"><h3>Admin Portal</h3><p>Post UTME CBT</p></div>
   </div>
-  <nav style="flex:1; padding: 12px 0;">
+  <nav style="flex:1;padding:12px 0;overflow-y:auto;">
     <div class="nav-section-label">Overview</div>
     <a class="nav-item" href="admin-dashboard.html"><div class="nav-icon">🏠</div> Dashboard</a>
     <div class="nav-section-label">Management</div>
@@ -185,6 +185,7 @@
     <a class="nav-item active" href="admin-questions.html"><div class="nav-icon">❓</div> Questions</a>
     <a class="nav-item" href="admin-keys.html"><div class="nav-icon">🔑</div> Activation Keys</a>
     <a class="nav-item" href="admin-students.html"><div class="nav-icon">👥</div> Students</a>
+    <a class="nav-item" href="admin-weekly-tests.html"><div class="nav-icon">📅</div> Weekly Tests</a>
     <a class="nav-item" href="admin-announcements.html"><div class="nav-icon">📢</div> Announcements</a>
   </nav>
 </aside>
@@ -425,10 +426,12 @@ What is osmosis?,A process,B process,C process,D process,B,2022
     const { data: adminData } = await sb.from('admins').select('id').eq('id', session.user.id).single();
     if (!adminData) { window.location.href = 'admin-login.html'; return; }
 
-    // Load subjects for all selects
+    // Load subjects for all selects on page load
     await loadAllSubjects();
     loadSubjectsForSelect('s-uni', 's-subject');
     loadSubjectsForSelect('b-uni', 'b-subject');
+    loadSubjectsForSelect('p-uni', 'p-subject');
+    loadSubjectsForSelect('f-uni', 'f-subject');
   }
 
   async function loadAllSubjects() {
@@ -955,13 +958,17 @@ What is osmosis?,A process,B process,C process,D process,B,2022
   }
 
   function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('sidebar-overlay').classList.toggle('show');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('show');
+    document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
   }
 
   function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sidebar-overlay').classList.remove('show');
+    document.body.style.overflow = '';
   }
 
   async function handleLogout() { await sb.auth.signOut(); window.location.href = 'admin-login.html'; }
