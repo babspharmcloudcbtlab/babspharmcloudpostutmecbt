@@ -252,6 +252,14 @@
     .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .quick-actions { grid-template-columns: repeat(2, 1fr); }
   }
+
+  /* MOBILE TOUCH FIXES */
+  button, a, .nav-item, select, input {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .nav-item { min-height: 44px; }
+  .logout-btn { min-height: 44px; padding: 10px 18px !important; }
 </style>
 </head>
 <body>
