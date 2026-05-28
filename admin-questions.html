@@ -497,18 +497,29 @@ What is osmosis?,A process,B process,C process,D process,B,2022
   }
 
   async function loadAllSubjects() {
-    const { data } = await sb.from('subjects').select('*').order('university').order('name');
-    allSubjects = data || [];
+    try {
+      const { data, error } = await sb.from('subjects').select('*').order('university').order('name');
+      if (error) throw error;
+      allSubjects = data || [];
+      console.log('Subjects loaded:', allSubjects.length);
+    } catch(e) {
+      console.error('Failed to load subjects:', e);
+      allSubjects = [];
+    }
   }
 
   function loadSubjectsForSelect(uniSelectId, subjectSelectId) {
-    const uni = document.getElementById(uniSelectId).value;
+    const uniEl = document.getElementById(uniSelectId);
     const subjectSelect = document.getElementById(subjectSelectId);
+    if (!uniEl || !subjectSelect) return;
+    const uni = uniEl.value;
     const filtered = uni ? allSubjects.filter(s => s.university === uni) : allSubjects;
 
-    subjectSelect.innerHTML = filtered.length === 0
-      ? '<option value="">No subjects found — add subjects first</option>'
-      : filtered.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    if (filtered.length === 0) {
+      subjectSelect.innerHTML = '<option value="">⚠️ No subjects yet — add in Subjects page</option>';
+    } else {
+      subjectSelect.innerHTML = filtered.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    }
   }
 
   // ── TABS ───────────────────────────────────────────────────────
@@ -753,7 +764,7 @@ What is osmosis?,A process,B process,C process,D process,B,2022
     const correct = document.getElementById('s-correct').value;
     const year = document.getElementById('s-year').value || null;
 
-    if (!subjectId) return showSingleAlert('Please select a subject.', 'error');
+    if (!subjectId) return showSingleAlert('⚠️ No subjects found. Go to Subjects page and add subjects first.', 'error');
     if (!question) return showSingleAlert('Please enter the question text.', 'error');
     if (!optA || !optB || !optC || !optD) return showSingleAlert('Please fill in all 4 options.', 'error');
 
@@ -1034,6 +1045,12 @@ What is osmosis?,A process,B process,C process,D process,B,2022
   }
 
   async function handleLogout() { await sb.auth.signOut(); window.location.href = 'admin-login.html'; }
+
+  // Global error handler to debug click issues
+  window.onerror = function(msg, src, line, col, err) {
+    console.error('JS Error:', msg, 'Line:', line);
+    return false;
+  };
 
   init();
 </script>
