@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Test — Post UTME CBT Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--blue:#1a3bbd;--blue-light:#2d52e0;--gold:#f5a623;--gray-50:#f8f9fc;--gray-100:#eef0f7;--gray-200:#d8dce8;--gray-400:#8b92a9;--gray-600:#4a5068;--gray-800:#1e2235;--success:#38a169;--error:#e53e3e;--sidebar-w:240px;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh;display:flex;}
+  .sidebar{width:var(--sidebar-w);background:white;height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;border-right:1px solid var(--gray-100);z-index:100;transition:transform 0.3s;overflow-y:auto;}
+  .sidebar-logo{padding:20px 16px;border-bottom:1px solid var(--gray-100);}
+  .logo-badge{display:flex;align-items:center;gap:10px;}
+  .logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--blue),var(--blue-light));border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-weight:800;font-size:12px;color:white;}
+  .logo-text h3{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--gray-800);}
+  .logo-text p{font-size:10px;color:var(--gray-400);}
+  .nav-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gray-400);padding:8px 8px 4px;margin-top:6px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;cursor:pointer;transition:all 0.15s;color:var(--gray-600);font-size:13px;font-weight:500;margin-bottom:2px;text-decoration:none;}
+  .nav-item:hover{background:var(--gray-50);color:var(--gray-800);}
+  .nav-item.active{background:rgba(26,59,189,0.08);color:var(--blue);font-weight:600;}
+  .nav-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--gray-100);flex-shrink:0;}
+  .nav-item.active .nav-icon{background:rgba(26,59,189,0.12);}
+  .nav-badge{margin-left:auto;background:var(--error);color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;}
+  .sidebar-promo{margin:12px;background:linear-gradient(135deg,var(--blue),var(--blue-light));border-radius:14px;padding:16px 14px;color:white;}
+  .sidebar-promo h4{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;margin-bottom:4px;}
+  .sidebar-promo p{font-size:11px;opacity:0.8;line-height:1.4;margin-bottom:10px;}
+  .promo-btn{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:white;padding:7px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;width:100%;}
+  .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;}
+  .topbar{height:58px;background:white;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:50;}
+  .hamburger{display:none;background:none;border:none;font-size:20px;cursor:pointer;}
+  .topbar-title{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;}
+  .topbar-right{margin-left:auto;}
+  .user-chip{display:flex;align-items:center;gap:8px;background:var(--gray-50);border:1.5px solid var(--gray-100);border-radius:10px;padding:5px 10px 5px 5px;}
+  .user-avatar{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--blue-light));display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:white;}
+  .user-name{font-size:12px;font-weight:600;}
+  .content{padding:24px;flex:1;}
+
+  /* SCREENS */
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* TEST LIST SCREEN */
+  .test-card{background:white;border-radius:16px;padding:22px;border:1.5px solid var(--gray-100);margin-bottom:16px;transition:all 0.2s;}
+  .test-card:hover{border-color:var(--blue);box-shadow:0 4px 16px rgba(26,59,189,0.08);}
+  .test-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  .test-title{font-family:'Sora',sans-serif;font-size:16px;font-weight:800;color:var(--gray-800);margin-bottom:4px;}
+  .test-desc{font-size:13px;color:var(--gray-400);}
+  .live-badge{background:rgba(229,62,62,0.1);color:var(--error);font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid rgba(229,62,62,0.2);white-space:nowrap;display:flex;align-items:center;gap:4px;}
+  .live-dot{width:6px;height:6px;background:var(--error);border-radius:50%;animation:blink 1s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+  .upcoming-badge{background:rgba(245,166,35,0.1);color:#d97706;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid rgba(245,166,35,0.2);}
+  .ended-badge{background:var(--gray-100);color:var(--gray-400);font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;}
+
+  .test-meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+  .meta-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-600);}
+
+  .test-countdown{background:var(--gray-50);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .cd-label{font-size:12px;color:var(--gray-400);}
+  .cd-time{font-family:'Sora',sans-serif;font-size:16px;font-weight:800;color:var(--blue);}
+  .cd-time.ending{color:var(--error);}
+
+  .test-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .start-test-btn{padding:11px 24px;background:linear-gradient(135deg,var(--blue),var(--blue-light));color:white;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+  .start-test-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(26,59,189,0.3);}
+  .start-test-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+  .leaderboard-btn{padding:11px 20px;background:white;color:var(--blue);border:2px solid var(--blue);border-radius:10px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+  .leaderboard-btn:hover{background:var(--blue);color:white;}
+
+  .best-score-badge{background:rgba(56,161,105,0.08);border:1px solid rgba(56,161,105,0.2);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--success);font-weight:600;}
+
+  /* EXAM SCREEN */
+  .exam-topbar{background:white;border-bottom:1px solid var(--gray-100);padding:12px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;}
+  .exam-title{font-family:'Sora',sans-serif;font-size:14px;font-weight:700;}
+  .exam-progress-bar{flex:1;height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;max-width:200px;}
+  .exam-progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-light));border-radius:3px;transition:width 0.3s;}
+  .exam-progress-text{font-size:12px;font-weight:600;color:var(--gray-600);}
+  .timer-box{display:flex;align-items:center;gap:6px;background:var(--gray-50);border:1.5px solid var(--gray-200);border-radius:8px;padding:7px 12px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;margin-left:auto;}
+  .timer-box.warning{background:#fff8f0;border-color:#d97706;color:#d97706;}
+  .timer-box.danger{background:#fff5f5;border-color:var(--error);color:var(--error);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
+  .submit-btn-top{padding:8px 16px;background:var(--error);color:white;border:none;border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+
+  .exam-body{display:flex;flex:1;}
+  .question-panel{flex:1;padding:28px 32px;max-width:680px;}
+  .question-num{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--blue);margin-bottom:10px;}
+  .question-text{font-family:'Sora',sans-serif;font-size:17px;font-weight:600;color:var(--gray-800);line-height:1.6;margin-bottom:8px;}
+  .question-img{width:100%;max-height:220px;object-fit:contain;border-radius:10px;border:1px solid var(--gray-200);margin-bottom:16px;display:none;}
+  .question-img.show{display:block;}
+  .options-list{display:flex;flex-direction:column;gap:10px;margin-bottom:24px;}
+  .option-item{display:flex;align-items:center;gap:12px;padding:14px 18px;border:2px solid var(--gray-200);border-radius:12px;cursor:pointer;transition:all 0.15s;background:white;}
+  .option-item:hover{border-color:var(--blue-light);background:rgba(26,59,189,0.02);}
+  .option-item.selected{border-color:var(--blue);background:rgba(26,59,189,0.06);}
+  .option-item.correct{border-color:var(--success);background:rgba(56,161,105,0.08);}
+  .option-item.wrong{border-color:var(--error);background:rgba(229,62,62,0.06);}
+  .option-letter{width:32px;height:32px;border-radius:50%;border:2px solid var(--gray-200);display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--gray-400);flex-shrink:0;transition:all 0.15s;}
+  .option-item.selected .option-letter{background:var(--blue);border-color:var(--blue);color:white;}
+  .option-item.correct .option-letter{background:var(--success);border-color:var(--success);color:white;}
+  .option-item.wrong .option-letter{background:var(--error);border-color:var(--error);color:white;}
+  .option-text{font-size:14px;color:var(--gray-800);flex:1;}
+  .option-indicator{font-size:16px;margin-left:auto;}
+
+  .explanation-box{background:rgba(56,161,105,0.08);border:1.5px solid rgba(56,161,105,0.2);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:none;}
+  .explanation-box.show{display:block;}
+  .explanation-box h5{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:var(--success);margin-bottom:5px;}
+  .explanation-box p{font-size:13px;color:var(--gray-600);line-height:1.5;}
+
+  .nav-btns{display:flex;align-items:center;gap:10px;}
+  .nav-btn{display:flex;align-items:center;gap:6px;padding:10px 18px;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;border:none;}
+  .nav-btn.outline{background:white;border:2px solid var(--gray-200);color:var(--gray-600);}
+  .nav-btn.outline:hover{border-color:var(--blue);color:var(--blue);}
+  .nav-btn.primary{background:var(--blue);color:white;}
+  .nav-btn.primary:hover{background:var(--blue-dark);}
+
+  /* Q MAP */
+  .q-sidebar{width:220px;background:white;border-left:1px solid var(--gray-100);padding:20px 16px;overflow-y:auto;flex-shrink:0;}
+  .qs-title{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;margin-bottom:14px;}
+  .q-map{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:20px;}
+  .qm-item{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;border:2px solid var(--gray-200);color:var(--gray-400);transition:all 0.15s;}
+  .qm-item.current{background:var(--blue);border-color:var(--blue);color:white;}
+  .qm-item.answered{background:rgba(56,161,105,0.1);border-color:var(--success);color:var(--success);}
+
+  /* RESULT SCREEN */
+  .result-wrap{max-width:560px;margin:0 auto;padding:32px 24px;}
+  .result-card{background:white;border-radius:20px;padding:36px 32px;border:1.5px solid var(--gray-100);text-align:center;margin-bottom:20px;}
+  .result-emoji{font-size:56px;margin-bottom:12px;}
+  .result-card h2{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;margin-bottom:6px;}
+  .result-sub{font-size:14px;color:var(--gray-400);margin-bottom:24px;}
+  .score-ring{width:140px;height:140px;margin:0 auto 24px;position:relative;}
+  .score-ring svg{transform:rotate(-90deg);}
+  .ring-bg{stroke:var(--gray-100);}
+  .ring-fill{stroke-linecap:round;transition:stroke-dashoffset 1.5s ease;}
+  .score-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+  .score-num{font-family:'Sora',sans-serif;font-size:32px;font-weight:800;color:var(--gray-800);line-height:1;}
+  .score-lbl{font-size:11px;color:var(--gray-400);margin-top:2px;}
+  .result-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+  .rs{background:var(--gray-50);border-radius:10px;padding:14px 10px;text-align:center;}
+  .rs-num{font-family:'Sora',sans-serif;font-size:20px;font-weight:800;margin-bottom:3px;}
+  .rs-num.green{color:var(--success);}
+  .rs-num.red{color:var(--error);}
+  .rs-num.gray{color:var(--gray-400);}
+  .rs-lbl{font-size:11px;color:var(--gray-400);}
+  .result-btns{display:flex;gap:10px;}
+  .result-btn{flex:1;padding:13px;border-radius:12px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all 0.2s;}
+  .result-btn.primary{background:var(--blue);color:white;}
+  .result-btn.outline{background:white;border:2px solid var(--gray-200);color:var(--gray-600);}
+  .result-btn.gold{background:var(--gold);color:white;}
+
+  /* LEADERBOARD */
+  .lb-card{background:white;border-radius:16px;padding:20px;border:1.5px solid var(--gray-100);}
+  .lb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .lb-header h3{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;}
+  .lb-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100);}
+  .lb-item:last-child{border-bottom:none;}
+  .lb-rank{font-family:'Sora',sans-serif;font-size:16px;font-weight:800;width:32px;text-align:center;flex-shrink:0;}
+  .lb-rank.gold{color:var(--gold);}
+  .lb-rank.silver{color:#94a3b8;}
+  .lb-rank.bronze{color:#cd7c2f;}
+  .lb-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),var(--blue-light));display:flex;align-items:center;justify-content:center;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:white;flex-shrink:0;}
+  .lb-name{font-size:13px;font-weight:600;color:var(--gray-800);flex:1;}
+  .lb-attempts{font-size:11px;color:var(--gray-400);}
+  .lb-score{font-family:'Sora',sans-serif;font-size:16px;font-weight:800;color:var(--blue);}
+  .lb-item.me{background:rgba(26,59,189,0.04);border-radius:10px;padding:12px 10px;margin:0 -10px;}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+  .modal-overlay.show{opacity:1;pointer-events:all;}
+  .modal{background:white;border-radius:20px;padding:32px;max-width:400px;width:100%;transform:scale(0.95);transition:transform 0.2s;text-align:center;}
+  .modal-overlay.show .modal{transform:scale(1);}
+  .modal h3{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;margin-bottom:8px;}
+  .modal p{font-size:13px;color:var(--gray-400);margin-bottom:20px;line-height:1.6;}
+  .modal-btns{display:flex;gap:10px;}
+  .modal-btns button{flex:1;padding:12px;border-radius:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;}
+  .modal-btns .confirm{background:var(--error);color:white;}
+  .modal-btns .cancel{background:var(--gray-100);color:var(--gray-600);}
+
+  .empty-state{text-align:center;padding:60px 20px;color:var(--gray-400);}
+  .empty-icon{font-size:48px;margin-bottom:12px;}
+  .empty-state h3{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:var(--gray-600);margin-bottom:8px;}
+
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;cursor:pointer;}
+  .sidebar-overlay.show{display:block;}
+
+  @media(max-width:900px){
+    .sidebar{transform:translateX(-100%);}
+    .sidebar.open{transform:translateX(0);box-shadow:6px 0 24px rgba(0,0,0,0.2);}
+    .main{margin-left:0;}
+    .hamburger{display:block;}
+    .content{padding:16px;}
+    .q-sidebar{display:none;}
+    .question-panel{padding:16px;}
+    .exam-topbar{padding:10px 14px;gap:8px;}
+  }
+</style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-badge">
+      <div class="logo-icon" id="uni-logo">OAU</div>
+      <div class="logo-text"><h3 id="uni-name">Obafemi Awolowo</h3><p>Post UTME CBT Portal</p></div>
+    </div>
+  </div>
+  <nav style="flex:1;padding:12px 10px;overflow-y:auto;">
+    <div class="nav-section-label">Main</div>
+    <a class="nav-item" href="dashboard.html"><div class="nav-icon">🏠</div> Dashboard</a>
+    <a class="nav-item" href="exam.html"><div class="nav-icon">🖥️</div> Examine Yourself</a>
+    <a class="nav-item active" href="weekly-test.html"><div class="nav-icon">📅</div> Weekly Test<span class="nav-badge">NEW</span></a>
+    <a class="nav-item" href="past-questions.html"><div class="nav-icon">❓</div> Past Questions</a>
+    <a class="nav-item" href="saved.html"><div class="nav-icon">🔖</div> Saved Questions</a>
+    <div class="nav-section-label">Progress</div>
+    <a class="nav-item" href="performance.html"><div class="nav-icon">📊</div> Performance</a>
+    <a class="nav-item" href="results.html"><div class="nav-icon">🏆</div> My Results</a>
+    <div class="nav-section-label">Account</div>
+    <a class="nav-item" href="payments.html"><div class="nav-icon">💳</div> Payments</a>
+    <a class="nav-item" href="notifications.html"><div class="nav-icon">🔔</div> Notifications</a>
+    <a class="nav-item" href="profile.html"><div class="nav-icon">⚙️</div> Profile Settings</a>
+    <a class="nav-item" href="#" onclick="handleLogout()"><div class="nav-icon">🚪</div> Logout</a>
+  </nav>
+  <div class="sidebar-promo">
+    <h4>Prepare Smart. Score High.</h4>
+    <p>Practice daily to improve.</p>
+    <button class="promo-btn" onclick="window.location.href='exam.html'">Explore Now →</button>
+  </div>
+</aside>
+
+<div class="main" id="main-wrapper">
+  <!-- TEST LIST SCREEN -->
+  <div id="screen-list" class="screen active" style="display:flex;flex-direction:column;flex:1;">
+    <header class="topbar">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title">📅 Weekly Test</div>
+      <div class="topbar-right">
+        <div class="user-chip">
+          <div class="user-avatar" id="avatar">--</div>
+          <div class="user-name" id="uname">--</div>
+        </div>
+      </div>
+    </header>
+    <div class="content" id="tests-container">
+      <div class="empty-state"><div class="empty-icon">⏳</div><h3>Loading tests...</h3></div>
+    </div>
+  </div>
+
+  <!-- EXAM SCREEN -->
+  <div id="screen-exam" class="screen" style="display:none;flex-direction:column;flex:1;min-height:100vh;">
+    <div class="exam-topbar">
+      <div class="exam-title" id="exam-title">Weekly Test</div>
+      <div class="exam-progress-bar"><div class="exam-progress-fill" id="exam-prog" style="width:0%"></div></div>
+      <span class="exam-progress-text" id="exam-prog-text">1/20</span>
+      <div class="timer-box" id="timer-box">⏱️ <span id="timer">20:00</span></div>
+      <button class="submit-btn-top" onclick="confirmSubmit()">Submit</button>
+    </div>
+    <div class="exam-body">
+      <div class="question-panel">
+        <div class="question-num" id="q-num">Question 1 of 20</div>
+        <div class="question-text" id="q-text">Loading...</div>
+        <img class="question-img" id="q-img" src="" alt="">
+        <div class="options-list" id="opts-list"></div>
+        <div class="explanation-box" id="exp-box"><h5>✅ Explanation</h5><p id="exp-text"></p></div>
+        <div class="nav-btns">
+          <button class="nav-btn outline" id="prev-btn" onclick="prevQ()">← Prev</button>
+          <button class="nav-btn primary" id="next-btn" onclick="nextQ()">Next →</button>
+        </div>
+      </div>
+      <div class="q-sidebar">
+        <div class="qs-title">Questions</div>
+        <div class="q-map" id="q-map"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULT SCREEN -->
+  <div id="screen-result" class="screen" style="display:none;">
+    <header class="topbar">
+      <div class="topbar-title">🏆 Test Result</div>
+    </header>
+    <div class="result-wrap">
+      <div class="result-card">
+        <div class="result-emoji" id="r-emoji">🎉</div>
+        <h2 id="r-title">Well Done!</h2>
+        <div class="result-sub" id="r-sub">Here's how you performed</div>
+        <div class="score-ring">
+          <svg width="140" height="140" viewBox="0 0 140 140">
+            <circle class="ring-bg" cx="70" cy="70" r="58" fill="none" stroke-width="10"/>
+            <circle class="ring-fill" id="r-ring" cx="70" cy="70" r="58" fill="none" stroke-width="10" stroke-dasharray="364.4" stroke-dashoffset="364.4"/>
+          </svg>
+          <div class="score-center"><div class="score-num" id="r-pct">0%</div><div class="score-lbl">Score</div></div>
+        </div>
+        <div class="result-stats">
+          <div class="rs"><div class="rs-num green" id="r-correct">0</div><div class="rs-lbl">Correct</div></div>
+          <div class="rs"><div class="rs-num red" id="r-wrong">0</div><div class="rs-lbl">Wrong</div></div>
+          <div class="rs"><div class="rs-num gray" id="r-skipped">0</div><div class="rs-lbl">Skipped</div></div>
+        </div>
+        <div class="result-btns">
+          <button class="result-btn outline" onclick="retakeTest()">🔄 Retake</button>
+          <button class="result-btn gold" onclick="showLeaderboard()">🏆 Leaderboard</button>
+          <button class="result-btn primary" onclick="goHome()">🏠 Home</button>
+        </div>
+      </div>
+      <!-- LEADERBOARD ON RESULT PAGE -->
+      <div class="lb-card" id="result-lb" style="display:none;">
+        <div class="lb-header"><h3>🏆 Leaderboard</h3></div>
+        <div id="lb-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMIT MODAL -->
+<div class="modal-overlay" id="submit-modal">
+  <div class="modal">
+    <div style="font-size:36px;margin-bottom:10px;">⚠️</div>
+    <h3>Submit Test?</h3>
+    <p id="submit-msg">Are you sure you want to submit?</p>
+    <div class="modal-btns">
+      <button class="cancel" onclick="closeModal()">Continue</button>
+      <button class="confirm" onclick="submitTest()">Submit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL='https://xdixrqlhctisthfdvzvn.supabase.co';
+  const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
+  const{createClient}=supabase;
+  const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+  let currentUser=null, currentTest=null, questions=[], currentQ=0;
+  let answers={}, timerInterval=null, timeLeft=1200;
+
+  async function init(){
+    const{data:{session}}=await sb.auth.getSession();
+    if(!session){window.location.href='index.html';return;}
+    currentUser=session.user;
+    const meta=currentUser.user_metadata;
+    const name=meta.full_name||'Student';
+    const uni=meta.university||'OAU';
+    document.getElementById('avatar').textContent=name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+    document.getElementById('uname').textContent=name.split(' ')[0];
+    document.getElementById('uni-logo').textContent=uni;
+    document.getElementById('uni-name').textContent=uni==='OAU'?'Obafemi Awolowo':'University of Ibadan';
+    loadTests(uni);
+  }
+
+  async function loadTests(uni){
+    const container=document.getElementById('tests-container');
+    try{
+      const now=new Date().toISOString();
+      const{data,error}=await sb.from('weekly_tests').select('*').or(`university.eq.ALL,university.eq.${uni}`).eq('is_active',true).order('created_at',{ascending:false});
+      if(error)throw error;
+      if(!data||data.length===0){
+        container.innerHTML=`<div class="empty-state"><div class="empty-icon">📅</div><h3>No Weekly Tests Yet</h3><p>Check back soon — your admin will post a test here.</p></div>`;
+        return;
+      }
+
+      // Get my best scores
+      const{data:myResults}=await sb.from('weekly_test_results').select('test_id,score,total').eq('user_id',currentUser.id);
+      const myBest={};
+      (myResults||[]).forEach(r=>{
+        const pct=r.total>0?Math.round((r.score/r.total)*100):0;
+        if(!myBest[r.test_id]||pct>myBest[r.test_id])myBest[r.test_id]=pct;
+      });
+
+      container.innerHTML=data.map(t=>{
+        const now=new Date();
+        const start=new Date(t.start_date);
+        const end=new Date(t.end_date);
+        const isLive=now>=start&&now<=end;
+        const isUpcoming=now<start;
+        const isEnded=now>end;
+        const best=myBest[t.id];
+        const mins=Math.round(t.duration_seconds/60);
+
+        return`
+          <div class="test-card">
+            <div class="test-header">
+              <div>
+                <div class="test-title">${t.title}</div>
+                <div class="test-desc">${t.description||'Weekly challenge for all students'}</div>
+              </div>
+              ${isLive?`<div class="live-badge"><div class="live-dot"></div> LIVE</div>`:isUpcoming?`<div class="upcoming-badge">⏳ Upcoming</div>`:`<div class="ended-badge">Ended</div>`}
+            </div>
+            <div class="test-meta">
+              <div class="meta-item">❓ ${t.question_count} questions</div>
+              <div class="meta-item">⏱️ ${mins} minutes</div>
+              <div class="meta-item">📅 ${new Date(t.start_date).toLocaleDateString('en-NG',{day:'numeric',month:'short'})}</div>
+            </div>
+            ${isLive?`<div class="test-countdown"><div class="cd-label">Ends in</div><div class="cd-time" id="cd-${t.id}">--</div></div>`:''}
+            ${isUpcoming?`<div class="test-countdown"><div class="cd-label">Starts in</div><div class="cd-time" id="cd-${t.id}">--</div></div>`:''}
+            ${best!==undefined?`<div class="best-score-badge" style="margin-bottom:14px;">✅ Your best score: ${best}%</div>`:''}
+            <div class="test-actions">
+              ${isLive?`<button class="start-test-btn" onclick="startTest('${t.id}')">🚀 ${best!==undefined?'Retake Test':'Start Test'}</button>`:''}
+              ${isEnded?`<button class="start-test-btn" style="background:var(--gray-400);cursor:not-allowed" disabled>Test Ended</button>`:''}
+              ${isUpcoming?`<button class="start-test-btn" style="background:var(--gray-400);cursor:not-allowed" disabled>Not Started Yet</button>`:''}
+              <button class="leaderboard-btn" onclick="viewLeaderboard('${t.id}','${t.title}')">🏆 Leaderboard</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Start countdowns
+      data.forEach(t=>{
+        const el=document.getElementById('cd-'+t.id);
+        if(!el)return;
+        const target=new Date()<new Date(t.start_date)?new Date(t.start_date):new Date(t.end_date);
+        setInterval(()=>{
+          const diff=target-new Date();
+          if(diff<=0){el.textContent='Now';return;}
+          const d=Math.floor(diff/86400000);
+          const h=Math.floor((diff%86400000)/3600000);
+          const m=Math.floor((diff%3600000)/60000);
+          const s=Math.floor((diff%60000)/1000);
+          el.textContent=d>0?`${d}d ${h}h ${m}m`:`${h}h ${m}m ${s}s`;
+          if(diff<3600000)el.classList.add('ending');
+        },1000);
+      });
+
+    }catch(e){
+      container.innerHTML=`<div class="empty-state"><div class="empty-icon">❌</div><h3>Failed to load tests</h3></div>`;
+    }
+  }
+
+  async function startTest(testId){
+    const{data:test}=await sb.from('weekly_tests').select('*').eq('id',testId).single();
+    if(!test)return alert('Test not found');
+    currentTest=test;
+    timeLeft=test.duration_seconds;
+    answers={};
+    currentQ=0;
+
+    // Load random questions from all subjects for this uni
+    const uni=currentUser.user_metadata?.university||'OAU';
+    const{data:qs}=await sb.from('questions').select('*').eq('university',uni).limit(test.question_count*3);
+    if(!qs||qs.length===0){alert('No questions available for this test yet.');return;}
+
+    // Shuffle and pick
+    const shuffled=qs.sort(()=>Math.random()-0.5).slice(0,test.question_count);
+    questions=shuffled;
+
+    showScreen('exam');
+    document.getElementById('exam-title').textContent=test.title;
+    buildQMap();
+    showQuestion(0);
+    startTimer();
+  }
+
+  function buildQMap(){
+    const map=document.getElementById('q-map');
+    map.innerHTML=questions.map((_,i)=>`<div class="qm-item ${i===0?'current':''}" id="qm-${i}" onclick="goToQ(${i})">${i+1}</div>`).join('');
+  }
+
+  function updateQMap(){
+    questions.forEach((_,i)=>{
+      const el=document.getElementById('qm-'+i);
+      if(!el)return;
+      el.className='qm-item';
+      if(i===currentQ)el.classList.add('current');
+      else if(answers[i]!==undefined)el.classList.add('answered');
+    });
+  }
+
+  function showQuestion(idx){
+    currentQ=idx;
+    const q=questions[idx];
+    const total=questions.length;
+    document.getElementById('q-num').textContent=`Question ${idx+1} of ${total}`;
+    document.getElementById('q-text').textContent=q.question;
+    const img=document.getElementById('q-img');
+    if(q.image_url){img.src=q.image_url;img.classList.add('show');}else img.classList.remove('show');
+    document.getElementById('exam-prog').style.width=((idx+1)/total*100)+'%';
+    document.getElementById('exam-prog-text').textContent=`${idx+1}/${total}`;
+    document.getElementById('prev-btn').disabled=idx===0;
+    document.getElementById('next-btn').textContent=idx===total-1?'Finish →':'Next →';
+    document.getElementById('exp-box').classList.remove('show');
+
+    const opts=[{l:'A',t:q.option_a},{l:'B',t:q.option_b},{l:'C',t:q.option_c},{l:'D',t:q.option_d}];
+    document.getElementById('opts-list').innerHTML=opts.map(o=>`
+      <div class="option-item" id="opt-${o.l}" onclick="selectAnswer('${o.l}')">
+        <div class="option-letter">${o.l}</div>
+        <div class="option-text">${o.t}</div>
+        <div class="option-indicator"></div>
+      </div>`).join('');
+
+    if(answers[idx]!==undefined)highlightAnswer(answers[idx],q.correct_answer,false);
+    updateQMap();
+  }
+
+  function selectAnswer(letter){
+    answers[currentQ]=letter;
+    highlightAnswer(letter,questions[currentQ].correct_answer,true);
+    updateQMap();
+  }
+
+  function highlightAnswer(selected,correct,showExplanation){
+    ['A','B','C','D'].forEach(l=>{
+      const el=document.getElementById('opt-'+l);
+      if(!el)return;
+      el.classList.remove('selected','correct','wrong');
+      el.querySelector('.option-indicator').textContent='';
+    });
+    const sel=document.getElementById('opt-'+selected);
+    if(!sel)return;
+    if(selected===correct){
+      sel.classList.add('correct');
+      sel.querySelector('.option-indicator').textContent='✅';
+    }else{
+      sel.classList.add('wrong');
+      sel.querySelector('.option-indicator').textContent='❌';
+      const corEl=document.getElementById('opt-'+correct);
+      if(corEl){corEl.classList.add('correct');corEl.querySelector('.option-indicator').textContent='✅';}
+      if(showExplanation){
+        const q=questions[currentQ];
+        document.getElementById('exp-text').textContent=q.explanation||`The correct answer is option ${correct}.`;
+        document.getElementById('exp-box').classList.add('show');
+      }
+    }
+  }
+
+  function prevQ(){if(currentQ>0)showQuestion(currentQ-1);}
+  function nextQ(){if(currentQ<questions.length-1)showQuestion(currentQ+1);else confirmSubmit();}
+  function goToQ(i){showQuestion(i);}
+
+  function startTimer(){
+    updateTimerDisplay();
+    timerInterval=setInterval(()=>{
+      timeLeft--;updateTimerDisplay();
+      if(timeLeft<=0){clearInterval(timerInterval);submitTest();}
+    },1000);
+  }
+
+  function updateTimerDisplay(){
+    const m=Math.floor(timeLeft/60),s=timeLeft%60;
+    document.getElementById('timer').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    const box=document.getElementById('timer-box');
+    box.className='timer-box';
+    if(timeLeft<=60)box.classList.add('danger');
+    else if(timeLeft<=300)box.classList.add('warning');
+  }
+
+  function confirmSubmit(){
+    const answered=Object.keys(answers).length;
+    document.getElementById('submit-msg').textContent=`You answered ${answered} of ${questions.length} questions. Submit now?`;
+    document.getElementById('submit-modal').classList.add('show');
+  }
+
+  function closeModal(){document.getElementById('submit-modal').classList.remove('show');}
+
+  async function submitTest(){
+    closeModal();
+    clearInterval(timerInterval);
+    let correct=0,wrong=0,skipped=0;
+    questions.forEach((q,i)=>{
+      if(answers[i]===undefined)skipped++;
+      else if(answers[i]===q.correct_answer)correct++;
+      else wrong++;
+    });
+    const total=questions.length;
+    const pct=Math.round((correct/total)*100);
+    const name=currentUser.user_metadata?.full_name||'Student';
+
+    // Save result
+    await sb.from('weekly_test_results').insert({
+      test_id:currentTest.id,
+      user_id:currentUser.id,
+      student_name:name,
+      score:correct,
+      total,
+      time_taken:currentTest.duration_seconds-timeLeft
+    });
+
+    showResultScreen(pct,correct,wrong,skipped,total);
+  }
+
+  function showResultScreen(pct,correct,wrong,skipped,total){
+    showScreen('result');
+    let emoji='😢',title='Keep Trying!';
+    if(pct>=80){emoji='🏆';title='Outstanding!';}
+    else if(pct>=60){emoji='🎉';title='Great Job!';}
+    else if(pct>=40){emoji='👍';title='Good Effort!';}
+    document.getElementById('r-emoji').textContent=emoji;
+    document.getElementById('r-title').textContent=title;
+    document.getElementById('r-sub').textContent=`You scored ${pct}% on ${currentTest.title}`;
+    document.getElementById('r-correct').textContent=correct;
+    document.getElementById('r-wrong').textContent=wrong;
+    document.getElementById('r-skipped').textContent=skipped;
+
+    const circumference=364.4;
+    const offset=circumference-(pct/100)*circumference;
+    const ring=document.getElementById('r-ring');
+    const color=pct>=60?'#38a169':pct>=40?'#d97706':'#e53e3e';
+    ring.style.stroke=color;
+    setTimeout(()=>{
+      ring.style.strokeDashoffset=offset;
+      let cur=0;const step=pct/60;
+      const iv=setInterval(()=>{cur=Math.min(cur+step,pct);document.getElementById('r-pct').textContent=Math.round(cur)+'%';if(cur>=pct)clearInterval(iv);},16);
+    },300);
+  }
+
+  async function showLeaderboard(){
+    const lb=document.getElementById('result-lb');
+    lb.style.display='block';
+    await loadLeaderboard(currentTest.id,'lb-list');
+    lb.scrollIntoView({behavior:'smooth'});
+  }
+
+  async function viewLeaderboard(testId,title){
+    // Show leaderboard in a panel
+    const container=document.getElementById('tests-container');
+    container.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+        <button onclick="loadTests('${currentUser.user_metadata?.university||'OAU'}')" style="padding:8px 16px;background:var(--gray-100);border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">← Back</button>
+        <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:700;">🏆 ${title} — Leaderboard</div>
+      </div>
+      <div class="lb-card"><div id="lb-main-list"><div class="empty-state"><div class="empty-icon">⏳</div><h3>Loading...</h3></div></div></div>`;
+    await loadLeaderboard(testId,'lb-main-list');
+  }
+
+  async function loadLeaderboard(testId,containerId){
+    const container=document.getElementById(containerId);
+    try{
+      const{data,error}=await sb.from('weekly_test_results').select('*').eq('test_id',testId).order('score',{ascending:false}).order('time_taken',{ascending:true});
+      if(error)throw error;
+      if(!data||data.length===0){container.innerHTML='<div class="empty-state"><div class="empty-icon">🏆</div><h3>No submissions yet</h3></div>';return;}
+
+      // Best score per student
+      const best={};
+      data.forEach(r=>{
+        const pct=r.total>0?Math.round((r.score/r.total)*100):0;
+        if(!best[r.user_id]||pct>best[r.user_id].pct)best[r.user_id]={...r,pct};
+      });
+
+      const sorted=Object.values(best).sort((a,b)=>b.pct-a.pct||a.time_taken-b.time_taken);
+      const rankEmoji=['🥇','🥈','🥉'];
+      const rankCls=['gold','silver','bronze'];
+
+      container.innerHTML=sorted.map((r,i)=>{
+        const isMe=r.user_id===currentUser.id;
+        const name=r.student_name||'Student';
+        const initials=name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+        const mins=Math.floor(r.time_taken/60);
+        const secs=r.time_taken%60;
+        return`
+          <div class="lb-item ${isMe?'me':''}">
+            <div class="lb-rank ${rankCls[i]||''}">${i<3?rankEmoji[i]:i+1}</div>
+            <div class="lb-avatar">${initials}</div>
+            <div style="flex:1;">
+              <div class="lb-name">${name}${isMe?' (You)':''}</div>
+              <div class="lb-attempts">⏱️ ${mins}m ${secs}s</div>
+            </div>
+            <div class="lb-score">${r.pct}%</div>
+          </div>`;
+      }).join('');
+    }catch(e){
+      container.innerHTML='<div class="empty-state"><div class="empty-icon">❌</div><h3>Failed to load leaderboard</h3></div>';
+    }
+  }
+
+  function retakeTest(){showScreen('list');startTest(currentTest.id);}
+  function goHome(){window.location.href='dashboard.html';}
+
+  function showScreen(name){
+    document.getElementById('screen-list').style.display=name==='list'?'flex':'none';
+    document.getElementById('screen-exam').style.display=name==='exam'?'flex':'none';
+    document.getElementById('screen-result').style.display=name==='result'?'block':'none';
+  }
+
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('show');document.body.style.overflow=document.getElementById('sidebar').classList.contains('open')?'hidden':'';}
+  function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');document.body.style.overflow='';}
+  async function handleLogout(){await sb.auth.signOut();window.location.href='index.html';}
+  init();
+</script>
+</body>
+</html>

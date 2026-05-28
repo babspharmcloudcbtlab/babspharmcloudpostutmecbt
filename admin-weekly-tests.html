@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weekly Tests — Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--blue:#1a3bbd;--blue-dark:#122894;--blue-light:#2d52e0;--gold:#f5a623;--gray-50:#f8f9fc;--gray-100:#eef0f7;--gray-200:#d8dce8;--gray-400:#8b92a9;--gray-600:#4a5068;--gray-800:#1e2235;--success:#38a169;--error:#e53e3e;--sidebar-w:240px;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh;display:flex;}
+  .sidebar{width:var(--sidebar-w);background:#0f1f6e;height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;z-index:100;transition:transform 0.3s;overflow-y:auto;}
+  .sidebar-logo{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:10px;}
+  .logo-icon{width:38px;height:38px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .logo-text h3{font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:white;}
+  .logo-text p{font-size:10px;color:rgba(255,255,255,0.5);}
+  .nav-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.3);padding:12px 16px 4px;}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;cursor:pointer;transition:all 0.15s;color:rgba(255,255,255,0.6);font-size:13px;font-weight:500;text-decoration:none;margin:1px 8px;border-radius:10px;}
+  .nav-item:hover{background:rgba(255,255,255,0.08);color:white;}
+  .nav-item.active{background:rgba(255,255,255,0.12);color:white;font-weight:600;}
+  .nav-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(255,255,255,0.08);flex-shrink:0;}
+  .nav-item.active .nav-icon{background:var(--gold);}
+  .main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;}
+  .topbar{height:58px;background:white;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;padding:0 24px;gap:12px;position:sticky;top:0;z-index:50;}
+  .hamburger{display:none;background:none;border:none;font-size:20px;cursor:pointer;}
+  .topbar-title{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;}
+  .topbar-right{margin-left:auto;}
+  .logout-btn{padding:8px 16px;background:rgba(229,62,62,0.08);color:var(--error);border:1px solid rgba(229,62,62,0.2);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;}
+  .logout-btn:hover{background:var(--error);color:white;}
+  .content{padding:24px;flex:1;}
+  .page-grid{display:grid;grid-template-columns:400px 1fr;gap:20px;}
+
+  .form-panel{background:white;border-radius:16px;padding:24px;border:1.5px solid var(--gray-100);height:fit-content;}
+  .form-panel h3{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;margin-bottom:20px;}
+  .form-group{margin-bottom:16px;}
+  .form-group label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:7px;}
+  .form-group input,.form-group select,.form-group textarea{width:100%;padding:11px 14px;border:1.5px solid var(--gray-200);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--gray-800);background:var(--gray-50);outline:none;transition:border-color 0.2s;appearance:none;resize:vertical;}
+  .form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--blue);background:white;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .submit-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--blue),var(--blue-light));color:white;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+  .submit-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(26,59,189,0.3);}
+  .submit-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
+  .alert{padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:14px;display:none;}
+  .alert.show{display:block;}
+  .alert.error{background:#fff5f5;color:var(--error);border:1px solid #fed7d7;}
+  .alert.success{background:#f0fff4;color:var(--success);border:1px solid #c6f6d5;}
+
+  /* TESTS LIST */
+  .list-panel{background:white;border-radius:16px;padding:24px;border:1.5px solid var(--gray-100);}
+  .list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+  .list-header h3{font-family:'Sora',sans-serif;font-size:15px;font-weight:700;}
+
+  .test-item{border:1.5px solid var(--gray-100);border-radius:14px;padding:18px;margin-bottom:14px;transition:all 0.2s;}
+  .test-item:hover{border-color:var(--blue);box-shadow:0 4px 14px rgba(26,59,189,0.08);}
+  .ti-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .ti-title{font-family:'Sora',sans-serif;font-size:14px;font-weight:700;color:var(--gray-800);}
+  .ti-desc{font-size:12px;color:var(--gray-400);margin-top:2px;}
+  .live-badge{background:rgba(229,62,62,0.1);color:var(--error);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:4px;white-space:nowrap;}
+  .live-dot{width:5px;height:5px;background:var(--error);border-radius:50%;animation:blink 1s infinite;}
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+  .upcoming-badge{background:rgba(245,166,35,0.1);color:#d97706;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .ended-badge{background:var(--gray-100);color:var(--gray-400);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;}
+
+  .ti-meta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;}
+  .ti-meta span{font-size:12px;color:var(--gray-600);}
+  .ti-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .view-results-btn{padding:7px 14px;background:rgba(26,59,189,0.08);color:var(--blue);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;}
+  .view-results-btn:hover{background:var(--blue);color:white;}
+  .del-btn{padding:7px 12px;background:rgba(229,62,62,0.08);color:var(--error);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;}
+  .del-btn:hover{background:var(--error);color:white;}
+  .toggle-btn{padding:7px 12px;background:rgba(56,161,105,0.08);color:var(--success);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;}
+  .toggle-btn.deactivate{background:rgba(245,166,35,0.08);color:#d97706;}
+
+  /* RESULTS MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+  .modal-overlay.show{opacity:1;pointer-events:all;}
+  .modal{background:white;border-radius:20px;padding:0;max-width:600px;width:100%;transform:scale(0.95);transition:transform 0.2s;max-height:85vh;display:flex;flex-direction:column;}
+  .modal-overlay.show .modal{transform:scale(1);}
+  .modal-header{padding:20px 24px;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .modal-header h3{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;}
+  .modal-close{background:var(--gray-100);border:none;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:14px;}
+  .modal-body{padding:20px 24px;overflow-y:auto;flex:1;}
+
+  table{width:100%;border-collapse:collapse;}
+  th{background:var(--gray-50);padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;}
+  td{padding:12px;border-bottom:1px solid var(--gray-100);font-size:13px;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--gray-50);}
+  .score-cell{font-family:'Sora',sans-serif;font-weight:700;}
+  .score-cell.good{color:var(--success);}
+  .score-cell.mid{color:#d97706;}
+  .score-cell.low{color:var(--error);}
+
+  .empty-state{text-align:center;padding:40px;color:var(--gray-400);}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;cursor:pointer;}
+  .sidebar-overlay.show{display:block;}
+
+  @media(max-width:900px){
+    .sidebar{transform:translateX(-100%);}
+    .sidebar.open{transform:translateX(0);box-shadow:6px 0 24px rgba(0,0,0,0.2);}
+    .main{margin-left:0;}
+    .hamburger{display:block;}
+    .page-grid{grid-template-columns:1fr;}
+    .content{padding:16px;}
+    .form-row{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚙️</div>
+    <div class="logo-text"><h3>Admin Portal</h3><p>Post UTME CBT</p></div>
+  </div>
+  <nav style="flex:1;padding:12px 0;">
+    <div class="nav-section-label">Overview</div>
+    <a class="nav-item" href="admin-dashboard.html"><div class="nav-icon">🏠</div> Dashboard</a>
+    <div class="nav-section-label">Management</div>
+    <a class="nav-item" href="admin-subjects.html"><div class="nav-icon">📚</div> Subjects</a>
+    <a class="nav-item" href="admin-questions.html"><div class="nav-icon">❓</div> Questions</a>
+    <a class="nav-item" href="admin-keys.html"><div class="nav-icon">🔑</div> Activation Keys</a>
+    <a class="nav-item" href="admin-students.html"><div class="nav-icon">👥</div> Students</a>
+    <a class="nav-item active" href="admin-weekly-tests.html"><div class="nav-icon">📅</div> Weekly Tests</a>
+    <a class="nav-item" href="admin-announcements.html"><div class="nav-icon">📢</div> Announcements</a>
+  </nav>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title">📅 Weekly Tests</div>
+    <div class="topbar-right">
+      <button class="logout-btn" onclick="handleLogout()">🚪 Logout</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="page-grid">
+
+      <!-- CREATE TEST FORM -->
+      <div class="form-panel">
+        <h3>➕ Create Weekly Test</h3>
+        <div class="alert" id="form-alert"></div>
+
+        <div class="form-group">
+          <label>Test Title</label>
+          <input type="text" id="t-title" placeholder="e.g. Week 3 Challenge">
+        </div>
+
+        <div class="form-group">
+          <label>Description (Optional)</label>
+          <textarea id="t-desc" rows="2" placeholder="Brief description for students..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>University</label>
+            <select id="t-uni">
+              <option value="ALL">All Students</option>
+              <option value="OAU">OAU Only</option>
+              <option value="UI">UI Only</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>No. of Questions</label>
+            <select id="t-count">
+              <option value="10">10 Questions</option>
+              <option value="20" selected>20 Questions</option>
+              <option value="30">30 Questions</option>
+              <option value="40">40 Questions</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Time Limit</label>
+            <select id="t-duration">
+              <option value="600">10 Minutes</option>
+              <option value="1200" selected>20 Minutes</option>
+              <option value="1800">30 Minutes</option>
+              <option value="3600">60 Minutes</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Start Date & Time</label>
+          <input type="datetime-local" id="t-start">
+        </div>
+
+        <div class="form-group">
+          <label>End Date & Time</label>
+          <input type="datetime-local" id="t-end">
+        </div>
+
+        <button class="submit-btn" id="create-btn" onclick="createTest()">Create Weekly Test →</button>
+      </div>
+
+      <!-- TESTS LIST -->
+      <div class="list-panel">
+        <div class="list-header">
+          <h3>All Weekly Tests</h3>
+        </div>
+        <div id="tests-list"><div class="empty-state">Loading...</div></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS MODAL -->
+<div class="modal-overlay" id="results-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">Test Results</h3>
+      <button class="modal-close" onclick="closeResultsModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-content">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL='https://xdixrqlhctisthfdvzvn.supabase.co';
+  const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
+  const{createClient}=supabase;
+  const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+  async function init(){
+    const{data:{session}}=await sb.auth.getSession();
+    if(!session){window.location.href='admin-login.html';return;}
+    const{data:adminData}=await sb.from('admins').select('id').eq('id',session.user.id).single();
+    if(!adminData){window.location.href='admin-login.html';return;}
+
+    // Set default dates
+    const now=new Date();
+    const later=new Date(now.getTime()+7*24*60*60*1000);
+    document.getElementById('t-start').value=now.toISOString().slice(0,16);
+    document.getElementById('t-end').value=later.toISOString().slice(0,16);
+    loadTests();
+  }
+
+  function showAlert(msg,type){
+    const el=document.getElementById('form-alert');
+    el.textContent=msg;el.className='alert show '+type;
+    setTimeout(()=>el.className='alert',5000);
+  }
+
+  async function createTest(){
+    const title=document.getElementById('t-title').value.trim();
+    const desc=document.getElementById('t-desc').value.trim();
+    const uni=document.getElementById('t-uni').value;
+    const count=parseInt(document.getElementById('t-count').value);
+    const duration=parseInt(document.getElementById('t-duration').value);
+    const start=document.getElementById('t-start').value;
+    const end=document.getElementById('t-end').value;
+
+    if(!title)return showAlert('Please enter a title.','error');
+    if(!start||!end)return showAlert('Please set start and end dates.','error');
+    if(new Date(end)<=new Date(start))return showAlert('End date must be after start date.','error');
+
+    const btn=document.getElementById('create-btn');
+    btn.disabled=true;btn.textContent='Creating...';
+
+    try{
+      const{error}=await sb.from('weekly_tests').insert({
+        title,description:desc,university:uni,
+        question_count:count,duration_seconds:duration,
+        start_date:new Date(start).toISOString(),
+        end_date:new Date(end).toISOString(),
+        is_active:true
+      });
+      if(error)throw error;
+      showAlert('✅ Weekly test created!','success');
+      document.getElementById('t-title').value='';
+      document.getElementById('t-desc').value='';
+      loadTests();
+    }catch(e){
+      showAlert(e.message||'Failed to create test.','error');
+    }finally{
+      btn.disabled=false;btn.textContent='Create Weekly Test →';
+    }
+  }
+
+  async function loadTests(){
+    const container=document.getElementById('tests-list');
+    try{
+      const{data,error}=await sb.from('weekly_tests').select('*').order('created_at',{ascending:false});
+      if(error)throw error;
+      if(!data||data.length===0){
+        container.innerHTML='<div class="empty-state">No tests yet. Create one!</div>';
+        return;
+      }
+
+      // Get submission counts
+      const{data:results}=await sb.from('weekly_test_results').select('test_id');
+      const counts={};
+      (results||[]).forEach(r=>{counts[r.test_id]=(counts[r.test_id]||0)+1;});
+
+      const now=new Date();
+      container.innerHTML=data.map(t=>{
+        const start=new Date(t.start_date);
+        const end=new Date(t.end_date);
+        const isLive=now>=start&&now<=end;
+        const isUpcoming=now<start;
+        const mins=Math.round(t.duration_seconds/60);
+        const subCount=counts[t.id]||0;
+
+        return`
+          <div class="test-item">
+            <div class="ti-header">
+              <div>
+                <div class="ti-title">${t.title}</div>
+                <div class="ti-desc">${t.description||'No description'}</div>
+              </div>
+              ${isLive?`<div class="live-badge"><div class="live-dot"></div>LIVE</div>`:isUpcoming?`<div class="upcoming-badge">⏳ Upcoming</div>`:`<div class="ended-badge">Ended</div>`}
+            </div>
+            <div class="ti-meta">
+              <span>📅 ${start.toLocaleDateString()} — ${end.toLocaleDateString()}</span>
+              <span>❓ ${t.question_count} questions</span>
+              <span>⏱️ ${mins} mins</span>
+              <span>🎓 ${t.university}</span>
+              <span>📝 ${subCount} submission${subCount!==1?'s':''}</span>
+            </div>
+            <div class="ti-actions">
+              <button class="view-results-btn" onclick="viewResults('${t.id}','${t.title}')">📊 View Results</button>
+              <button class="toggle-btn ${t.is_active?'deactivate':''}" onclick="toggleTest('${t.id}',${t.is_active})">${t.is_active?'⏸️ Deactivate':'▶️ Activate'}</button>
+              <button class="del-btn" onclick="deleteTest('${t.id}')">🗑️ Delete</button>
+            </div>
+          </div>`;
+      }).join('');
+    }catch(e){
+      container.innerHTML='<div class="empty-state">Failed to load tests</div>';
+    }
+  }
+
+  async function viewResults(testId,title){
+    document.getElementById('modal-title').textContent=`📊 ${title} — Results`;
+    document.getElementById('results-modal').classList.add('show');
+    const container=document.getElementById('modal-content');
+    container.innerHTML='<div class="empty-state">Loading...</div>';
+
+    try{
+      const{data,error}=await sb.from('weekly_test_results').select('*').eq('test_id',testId).order('score',{ascending:false}).order('time_taken',{ascending:true});
+      if(error)throw error;
+      if(!data||data.length===0){
+        container.innerHTML='<div class="empty-state">No submissions yet.</div>';
+        return;
+      }
+
+      // Best per student
+      const best={};
+      data.forEach(r=>{
+        const pct=r.total>0?Math.round((r.score/r.total)*100):0;
+        if(!best[r.user_id]||pct>best[r.user_id].pct)best[r.user_id]={...r,pct};
+      });
+
+      const sorted=Object.values(best).sort((a,b)=>b.pct-a.pct);
+
+      container.innerHTML=`
+        <p style="font-size:13px;color:var(--gray-400);margin-bottom:14px;">${sorted.length} student${sorted.length!==1?'s':''} submitted</p>
+        <table>
+          <thead>
+            <tr><th>Rank</th><th>Student</th><th>Score</th><th>Correct</th><th>Time</th><th>Attempts</th></tr>
+          </thead>
+          <tbody>
+            ${sorted.map((r,i)=>{
+              const cls=r.pct>=60?'good':r.pct>=40?'mid':'low';
+              const mins=Math.floor(r.time_taken/60);
+              const secs=r.time_taken%60;
+              const attempts=data.filter(d=>d.user_id===r.user_id).length;
+              return`
+                <tr>
+                  <td><strong>${i+1}</strong></td>
+                  <td>${r.student_name||'Unknown'}</td>
+                  <td><span class="score-cell ${cls}">${r.pct}%</span></td>
+                  <td>${r.score}/${r.total}</td>
+                  <td>${mins}m ${secs}s</td>
+                  <td>${attempts}</td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+    }catch(e){
+      container.innerHTML='<div class="empty-state">Failed to load results</div>';
+    }
+  }
+
+  async function toggleTest(id,isActive){
+    await sb.from('weekly_tests').update({is_active:!isActive}).eq('id',id);
+    loadTests();
+  }
+
+  async function deleteTest(id){
+    if(!confirm('Delete this test and all its results?'))return;
+    await sb.from('weekly_test_results').delete().eq('test_id',id);
+    await sb.from('weekly_tests').delete().eq('id',id);
+    loadTests();
+  }
+
+  function closeResultsModal(){document.getElementById('results-modal').classList.remove('show');}
+  function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('show');}
+  function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
+  async function handleLogout(){await sb.auth.signOut();window.location.href='admin-login.html';}
+  init();
+</script>
+</body>
+</html>
