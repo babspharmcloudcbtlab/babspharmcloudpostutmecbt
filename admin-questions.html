@@ -4,460 +4,343 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manage Questions — Admin Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root {
-    --blue: #1a3bbd; --blue-dark: #122894; --blue-light: #2d52e0;
-    --gold: #f5a623; --gray-50: #f8f9fc; --gray-100: #eef0f7;
-    --gray-200: #d8dce8; --gray-400: #8b92a9; --gray-600: #4a5068;
-    --gray-800: #1e2235; --success: #38a169; --error: #e53e3e;
-    --sidebar-w: 240px;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--gray-50); color: var(--gray-800); min-height: 100vh; display: flex; }
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --blue:#1a3bbd;--blue-light:#2d52e0;--gold:#f5a623;
+  --gray-50:#f8f9fc;--gray-100:#eef0f7;--gray-200:#d8dce8;
+  --gray-400:#8b92a9;--gray-600:#4a5068;--gray-800:#1e2235;
+  --success:#38a169;--error:#e53e3e;--sidebar-w:240px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray-800);min-height:100vh;display:flex;}
 
-  .sidebar { width: var(--sidebar-w); background: #0f1f6e; height: 100vh; position: fixed; left: 0; top: 0; display: flex; flex-direction: column; z-index: 100; transition: transform 0.3s; overflow-y: auto; }
-  .sidebar-logo { padding: 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; }
-  .logo-icon { width: 38px; height: 38px; background: var(--gold); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-  .logo-text h3 { font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: white; }
-  .logo-text p { font-size: 10px; color: rgba(255,255,255,0.5); }
-  .nav-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); padding: 12px 16px 4px; }
-  .nav-item { display: flex; align-items: center; gap: 10px; padding: 11px 16px; cursor: pointer; transition: all 0.15s; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; text-decoration: none; margin: 1px 8px; border-radius: 10px; }
-  .nav-item:hover { background: rgba(255,255,255,0.08); color: white; }
-  .nav-item.active { background: rgba(255,255,255,0.12); color: white; font-weight: 600; }
-  .nav-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; background: rgba(255,255,255,0.08); flex-shrink: 0; }
-  .nav-item.active .nav-icon { background: var(--gold); }
+/* SIDEBAR */
+.sidebar{width:var(--sidebar-w);background:#0f1f6e;height:100vh;position:fixed;left:0;top:0;display:flex;flex-direction:column;z-index:100;overflow-y:auto;transition:transform 0.3s;}
+.sidebar-logo{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;gap:10px;}
+.logo-icon{width:38px;height:38px;background:var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.logo-text h3{font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:white;}
+.logo-text p{font-size:10px;color:rgba(255,255,255,0.5);}
+.nav-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.3);padding:12px 16px 4px;}
+.nav-a{display:flex;align-items:center;gap:10px;padding:11px 16px;color:rgba(255,255,255,0.6);font-size:13px;font-weight:500;text-decoration:none;margin:1px 8px;border-radius:10px;transition:all 0.15s;}
+.nav-a:hover{background:rgba(255,255,255,0.08);color:white;}
+.nav-a.active{background:rgba(255,255,255,0.12);color:white;font-weight:600;}
+.nav-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;background:rgba(255,255,255,0.08);flex-shrink:0;}
+.nav-a.active .nav-icon{background:var(--gold);}
 
-  .main { margin-left: var(--sidebar-w); flex: 1; display: flex; flex-direction: column; }
-  .topbar { height: 58px; background: white; border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; padding: 0 24px; gap: 12px; position: sticky; top: 0; z-index: 50; }
-  .hamburger { display: none; background: none; border: none; font-size: 20px; cursor: pointer; }
-  .topbar-title { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; }
-  .topbar-right { margin-left: auto; }
-  .logout-btn {
-    padding: 10px 18px;
-    background: rgba(229,62,62,0.08);
-    color: var(--error);
-    border: 1px solid rgba(229,62,62,0.2);
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    min-height: 44px;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .logout-btn:hover { background: var(--error); color: white; }
+/* MAIN */
+.main{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh;}
 
-  .content { padding: 24px; flex: 1; }
+/* TOPBAR */
+.topbar{height:56px;background:white;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:50;}
+.hamburger{display:none;width:40px;height:40px;background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray-600);align-items:center;justify-content:center;}
+.topbar-title{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:var(--gray-800);}
+.logout-btn{margin-left:auto;padding:10px 18px;background:rgba(229,62,62,0.08);color:var(--error);border:1.5px solid rgba(229,62,62,0.2);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.logout-btn:hover{background:var(--error);color:white;}
 
-  /* TABS */
-  .tab-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    background: white;
-    border: 1.5px solid var(--gray-100);
-    border-radius: 14px;
-    padding: 4px;
-    margin-bottom: 24px;
-    width: 100%;
-    gap: 4px;
-  }
-  .tab-btn {
-    padding: 12px 8px;
-    border-radius: 10px;
-    border: none;
-    background: transparent;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--gray-400);
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
-    line-height: 1.3;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .tab-btn.active {
-    background: var(--blue);
-    color: white;
-    font-weight: 600;
-  }
+/* CONTENT */
+.content{padding:20px;flex:1;}
 
-  /* PANELS */
-  .tab-panel { display: none; }
-  .tab-panel.active { display: block; }
+/* TABS */
+.tabs{display:flex;gap:4px;background:white;border:1.5px solid var(--gray-100);border-radius:12px;padding:4px;margin-bottom:20px;width:100%;}
+.tab{flex:1;padding:11px 6px;border:none;border-radius:9px;background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--gray-400);cursor:pointer;text-align:center;line-height:1.3;}
+.tab.on{background:var(--blue);color:white;font-weight:700;}
 
-  /* SINGLE UPLOAD */
-  .form-card { background: white; border-radius: 16px; padding: 28px; border: 1.5px solid var(--gray-100); max-width: 700px; }
-  .form-card h3 { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 20px; }
+/* PANELS */
+.panel{display:none;}
+.panel.on{display:block;}
 
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .form-group { margin-bottom: 16px; }
-  .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 7px; }
-  .form-group input, .form-group select, .form-group textarea {
-    width: 100%; padding: 11px 14px; border: 1.5px solid var(--gray-200);
-    border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 14px;
-    color: var(--gray-800); background: var(--gray-50); outline: none;
-    transition: border-color 0.2s; appearance: none; resize: vertical;
-  }
-  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--blue); background: white; }
+/* CARDS */
+.card{background:white;border-radius:14px;padding:20px;border:1.5px solid var(--gray-100);margin-bottom:16px;}
+.card h3{font-family:'Sora',sans-serif;font-size:14px;font-weight:700;color:var(--gray-800);margin-bottom:16px;}
 
-  .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+/* FORM */
+.fg{margin-bottom:14px;}
+.fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-600);margin-bottom:6px;}
+.fg input,.fg select,.fg textarea{width:100%;padding:11px 14px;border:1.5px solid var(--gray-200);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--gray-800);background:var(--gray-50);outline:none;transition:border-color 0.2s;}
+.fg input:focus,.fg select,.fg textarea:focus{border-color:var(--blue);background:white;}
+.fg textarea{resize:vertical;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.opt-wrap{position:relative;}
+.opt-letter{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:'Sora',sans-serif;font-size:13px;font-weight:800;color:var(--blue);}
+.opt-wrap input{padding-left:32px;}
 
-  .option-item { position: relative; }
-  .option-label { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; color: var(--blue); }
-  .option-item input { padding-left: 36px; }
+/* IMG UPLOAD */
+.img-area{border:2px dashed var(--gray-200);border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:var(--gray-50);font-size:13px;color:var(--gray-400);}
+.img-area:hover{border-color:var(--blue);}
+.img-preview{max-width:100%;max-height:140px;border-radius:8px;margin-top:10px;display:none;}
 
-  /* IMAGE UPLOAD */
-  .img-upload-area {
-    border: 2px dashed var(--gray-200); border-radius: 12px; padding: 24px;
-    text-align: center; cursor: pointer; transition: all 0.2s; background: var(--gray-50);
-  }
-  .img-upload-area:hover { border-color: var(--blue); background: rgba(26,59,189,0.02); }
-  .img-upload-area.has-image { border-color: var(--success); background: rgba(56,161,105,0.04); }
-  .img-upload-area p { font-size: 13px; color: var(--gray-400); margin-top: 8px; }
-  .img-preview { max-width: 100%; max-height: 160px; border-radius: 8px; margin-top: 10px; display: none; }
+/* BUTTONS */
+.btn{padding:12px 24px;border:none;border-radius:10px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+.btn-primary{background:linear-gradient(135deg,var(--blue),var(--blue-light));color:white;width:100%;display:block;text-align:center;}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(26,59,189,0.3);}
+.btn-primary:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
+.btn-secondary{background:var(--gray-100);color:var(--gray-800);}
+.btn-secondary:hover{background:var(--gray-200);}
 
-  .submit-btn { padding: 13px 32px; background: linear-gradient(135deg, var(--blue), var(--blue-light)); color: white; border: none; border-radius: 10px; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-  .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(26,59,189,0.3); }
-  .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+/* ALERT */
+.alert{padding:11px 14px;border-radius:9px;font-size:13px;margin-bottom:14px;display:none;}
+.alert.on{display:block;}
+.alert.err{background:#fff5f5;color:var(--error);border:1px solid #fed7d7;}
+.alert.ok{background:#f0fff4;color:var(--success);border:1px solid #c6f6d5;}
 
-  .alert { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: none; }
-  .alert.show { display: block; }
-  .alert.error { background: #fff5f5; color: var(--error); border: 1px solid #fed7d7; }
-  .alert.success { background: #f0fff4; color: var(--success); border: 1px solid #c6f6d5; }
+/* DROP AREA */
+.drop-area{border:2px dashed var(--gray-200);border-radius:12px;padding:36px 20px;text-align:center;cursor:pointer;background:var(--gray-50);transition:all 0.2s;}
+.drop-area:hover,.drop-area.over{border-color:var(--blue);background:rgba(26,59,189,0.03);}
+.drop-area.has{border-color:var(--success);background:rgba(56,161,105,0.04);}
+.drop-icon{font-size:36px;margin-bottom:10px;}
+.drop-area h4{font-family:'Sora',sans-serif;font-size:14px;font-weight:700;color:var(--gray-800);margin-bottom:4px;}
+.drop-area p{font-size:12px;color:var(--gray-400);}
 
-  /* BULK UPLOAD */
-  .bulk-card { background: white; border-radius: 16px; padding: 28px; border: 1.5px solid var(--gray-100); max-width: 700px; }
-  .bulk-card h3 { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
-  .bulk-card p { font-size: 13px; color: var(--gray-400); margin-bottom: 20px; line-height: 1.6; }
+/* PROGRESS */
+.prog-wrap{display:none;margin-top:16px;}
+.prog-bar{height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden;margin-bottom:6px;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-light));border-radius:4px;transition:width 0.3s;width:0%;}
+.prog-text{font-size:12px;font-weight:600;color:var(--gray-600);}
 
-  .csv-template {
-    background: var(--gray-800); border-radius: 10px; padding: 16px 20px;
-    font-family: monospace; font-size: 12px; color: #a0e4a0;
-    margin-bottom: 20px; overflow-x: auto; white-space: nowrap;
-  }
+/* PREVIEW TABLE */
+.tbl-wrap{overflow-x:auto;margin-top:14px;}
+table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
+th{background:var(--gray-100);padding:9px 10px;text-align:left;font-weight:700;color:var(--gray-600);font-size:10px;text-transform:uppercase;}
+td{padding:9px 10px;border-bottom:1px solid var(--gray-100);color:var(--gray-800);word-break:break-word;vertical-align:top;}
+th:nth-child(1){width:4%;}th:nth-child(2){width:28%;}
+th:nth-child(3),th:nth-child(4),th:nth-child(5),th:nth-child(6){width:13%;}
+th:nth-child(7){width:8%;}th:nth-child(8){width:21%;}
 
-  .upload-area {
-    border: 2px dashed var(--gray-200); border-radius: 14px; padding: 40px 24px;
-    text-align: center; cursor: pointer; transition: all 0.2s; background: var(--gray-50);
-  }
-  .upload-area:hover { border-color: var(--blue); background: rgba(26,59,189,0.02); }
-  .upload-area.dragover { border-color: var(--blue); background: rgba(26,59,189,0.05); }
-  .upload-area.has-file { border-color: var(--success); background: rgba(56,161,105,0.04); }
-  .upload-icon { font-size: 40px; margin-bottom: 12px; }
-  .upload-area h4 { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: var(--gray-800); margin-bottom: 6px; }
-  .upload-area p { font-size: 13px; color: var(--gray-400); }
+/* Q LIST */
+.q-item{padding:14px 0;border-bottom:1px solid var(--gray-100);display:flex;align-items:flex-start;gap:12px;}
+.q-item:last-child{border-bottom:none;}
+.q-n{font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:var(--blue);background:rgba(26,59,189,0.08);padding:3px 9px;border-radius:6px;flex-shrink:0;margin-top:2px;}
+.q-body{flex:1;}
+.q-txt{font-size:13px;color:var(--gray-800);margin-bottom:5px;line-height:1.5;}
+.q-opts-row{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+.q-opt{font-size:11px;color:var(--gray-600);}
+.q-opt.cor{color:var(--success);font-weight:700;}
+.q-meta{font-size:11px;color:var(--gray-400);margin-top:4px;}
+.del-btn{width:30px;height:30px;border-radius:8px;background:rgba(229,62,62,0.08);border:none;cursor:pointer;color:var(--error);font-size:13px;flex-shrink:0;}
+.del-btn:hover{background:var(--error);color:white;}
 
-  .upload-progress { margin-top: 20px; display: none; }
-  .progress-bar { height: 8px; background: var(--gray-100); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--blue), var(--blue-light)); border-radius: 4px; transition: width 0.3s; }
-  .progress-text { font-size: 13px; color: var(--gray-600); font-weight: 600; }
+/* FILTER ROW */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.filter-sel{padding:8px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;color:var(--gray-800);background:white;cursor:pointer;}
 
-  .preview-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; table-layout: fixed; }
-  .preview-table th { background: var(--gray-100); padding: 10px 12px; text-align: left; font-weight: 700; color: var(--gray-600); font-size: 11px; text-transform: uppercase; word-wrap: break-word; }
-  .preview-table td { padding: 10px 12px; border-bottom: 1px solid var(--gray-100); color: var(--gray-800); word-wrap: break-word; vertical-align: top; }
-  .preview-table tr:hover td { background: var(--gray-50); }
-  .preview-table th:nth-child(1) { width: 4%; }
-  .preview-table th:nth-child(2) { width: 30%; }
-  .preview-table th:nth-child(3) { width: 14%; }
-  .preview-table th:nth-child(4) { width: 14%; }
-  .preview-table th:nth-child(5) { width: 14%; }
-  .preview-table th:nth-child(6) { width: 14%; }
-  .preview-table th:nth-child(7) { width: 10%; }
+.empty{text-align:center;padding:40px 20px;color:var(--gray-400);}
+.empty-icon{font-size:40px;margin-bottom:10px;}
 
-  /* QUESTIONS LIST */
-  .list-card { background: white; border-radius: 16px; padding: 24px; border: 1.5px solid var(--gray-100); margin-top: 24px; }
-  .list-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-  .list-header h3 { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; }
+/* SIDEBAR OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;cursor:pointer;}
+.overlay.on{display:block;}
 
-  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
-  .filter-select { padding: 7px 12px; border: 1.5px solid var(--gray-200); border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 12px; outline: none; color: var(--gray-800); background: white; cursor: pointer; }
-
-  .q-item { padding: 14px 0; border-bottom: 1px solid var(--gray-100); display: flex; align-items: flex-start; gap: 14px; }
-  .q-item:last-child { border-bottom: none; }
-  .q-num { font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700; color: var(--blue); background: rgba(26,59,189,0.08); padding: 4px 10px; border-radius: 6px; flex-shrink: 0; margin-top: 2px; }
-  .q-content { flex: 1; }
-  .q-text { font-size: 14px; color: var(--gray-800); margin-bottom: 6px; line-height: 1.5; }
-  .q-options { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-  .q-option { font-size: 12px; color: var(--gray-600); }
-  .q-option.correct { color: var(--success); font-weight: 600; }
-  .q-meta { font-size: 11px; color: var(--gray-400); margin-top: 6px; }
-  .q-actions { display: flex; gap: 6px; flex-shrink: 0; }
-  .icon-btn { width: 30px; height: 30px; border-radius: 8px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; }
-  .icon-btn.delete { background: rgba(229,62,62,0.08); color: var(--error); }
-  .icon-btn.delete:hover { background: var(--error); color: white; }
-
-  .empty-state { text-align: center; padding: 40px; color: var(--gray-400); }
-  .empty-icon { font-size: 40px; margin-bottom: 12px; }
-
-  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; cursor: pointer; }
-  .sidebar-overlay.show { display: block; }
-
-  @media (max-width: 900px) {
-    html, body { overflow-x: hidden; max-width: 100vw; }
-    .sidebar { transform: translateX(-100%); width: 240px; }
-    .sidebar.open { transform: translateX(0); box-shadow: 6px 0 24px rgba(0,0,0,0.2); }
-    .main {
-      margin-left: 0 !important;
-      width: 100vw !important;
-      max-width: 100vw !important;
-      overflow-x: hidden;
-    }
-    .hamburger { display: block; }
-    .content { padding: 16px; width: 100%; max-width: 100vw; overflow-x: hidden; }
-    .topbar { padding: 0 14px; width: 100%; max-width: 100vw; }
-    .form-row { grid-template-columns: 1fr; }
-    .options-grid { grid-template-columns: 1fr; }
-    .tab-bar { width: 100%; }
-    .tab-btn { font-size: 11px; padding: 10px 4px; }
-    .form-card, .bulk-card { max-width: 100%; }
-    .list-card { overflow-x: auto; }
-  }
+/* MOBILE */
+@media(max-width:900px){
+  html,body{overflow-x:hidden;max-width:100vw;}
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);box-shadow:6px 0 24px rgba(0,0,0,0.2);}
+  .main{margin-left:0 !important;width:100vw;max-width:100vw;}
+  .hamburger{display:flex !important;}
+  .content{padding:14px;}
+  .topbar{padding:0 14px;}
+  .row2{grid-template-columns:1fr;}
+  .opts{grid-template-columns:1fr;}
+  .card{padding:16px;}
+  button,a,.nav-a{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  .tab{min-height:44px;}
+  .btn{min-height:44px;}
+}
 </style>
 </head>
 <body>
 
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
 
+<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="logo-icon">⚙️</div>
     <div class="logo-text"><h3>Admin Portal</h3><p>Post UTME CBT</p></div>
   </div>
   <nav style="flex:1;padding:12px 0;overflow-y:auto;">
-    <div class="nav-section-label">Overview</div>
-    <a class="nav-item" href="admin-dashboard.html"><div class="nav-icon">🏠</div> Dashboard</a>
-    <div class="nav-section-label">Management</div>
-    <a class="nav-item" href="admin-subjects.html"><div class="nav-icon">📚</div> Subjects</a>
-    <a class="nav-item active" href="admin-questions.html"><div class="nav-icon">❓</div> Questions</a>
-    <a class="nav-item" href="admin-keys.html"><div class="nav-icon">🔑</div> Activation Keys</a>
-    <a class="nav-item" href="admin-students.html"><div class="nav-icon">👥</div> Students</a>
-    <a class="nav-item" href="admin-weekly-tests.html"><div class="nav-icon">📅</div> Weekly Tests</a>
-    <a class="nav-item" href="admin-announcements.html"><div class="nav-icon">📢</div> Announcements</a>
+    <div class="nav-label">Overview</div>
+    <a class="nav-a" href="admin-dashboard.html"><div class="nav-icon">🏠</div> Dashboard</a>
+    <div class="nav-label">Management</div>
+    <a class="nav-a" href="admin-subjects.html"><div class="nav-icon">📚</div> Subjects</a>
+    <a class="nav-a active" href="admin-questions.html"><div class="nav-icon">❓</div> Questions</a>
+    <a class="nav-a" href="admin-keys.html"><div class="nav-icon">🔑</div> Activation Keys</a>
+    <a class="nav-a" href="admin-students.html"><div class="nav-icon">👥</div> Students</a>
+    <a class="nav-a" href="admin-weekly-tests.html"><div class="nav-icon">📅</div> Weekly Tests</a>
+    <a class="nav-a" href="admin-announcements.html"><div class="nav-icon">📢</div> Announcements</a>
   </nav>
 </aside>
 
+<!-- MAIN -->
 <div class="main">
   <header class="topbar">
-    <button class="hamburger" onclick="toggleSidebar()">☰</button>
+    <button class="hamburger" id="ham-btn">☰</button>
     <div class="topbar-title">❓ Manage Questions</div>
-    <div class="topbar-right">
-      <button class="logout-btn" onclick="handleLogout()">🚪 Logout</button>
-    </div>
+    <button class="logout-btn" id="logout-btn">🚪 Logout</button>
   </header>
 
   <div class="content">
 
     <!-- TABS -->
-    <div class="tab-bar">
-      <button class="tab-btn active" onclick="switchTab('single', this)">➕ Single Upload</button>
-      <button class="tab-btn" onclick="switchTab('bulk', this)">📤 Bulk CSV Upload</button>
-      <button class="tab-btn" onclick="switchTab('pdf', this)">📄 PDF Upload</button>
-      <button class="tab-btn" onclick="switchTab('list', this)">📋 View Questions</button>
+    <div class="tabs">
+      <button class="tab on" id="tab-single">➕ Single</button>
+      <button class="tab" id="tab-bulk">📤 CSV</button>
+      <button class="tab" id="tab-pdf">📄 PDF</button>
+      <button class="tab" id="tab-list">📋 View</button>
     </div>
 
     <!-- SINGLE UPLOAD -->
-    <div class="tab-panel active" id="tab-single">
-      <div class="form-card">
+    <div class="panel on" id="panel-single">
+      <div class="card">
         <h3>➕ Add Single Question</h3>
-        <div class="alert" id="single-alert"></div>
+        <div class="alert" id="s-alert"></div>
 
-        <div class="form-row">
-          <div class="form-group">
+        <div class="row2">
+          <div class="fg">
             <label>University</label>
-            <select id="s-uni" onchange="loadSubjectsForSelect('s-uni', 's-subject')">
-              <option value="OAU">OAU</option>
-              <option value="UI">UI</option>
-            </select>
+            <select id="s-uni"><option value="OAU">OAU</option><option value="UI">UI</option></select>
           </div>
-          <div class="form-group">
+          <div class="fg">
             <label>Subject</label>
-            <select id="s-subject"><option value="">-- Select University First --</option></select>
+            <select id="s-subj"><option value="">Loading...</option></select>
           </div>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
+        <div class="row2">
+          <div class="fg">
             <label>Year (Optional)</label>
-            <input type="number" id="s-year" placeholder="e.g. 2023" min="2000" max="2030">
+            <input type="number" id="s-year" placeholder="e.g. 2023">
           </div>
-          <div class="form-group">
+          <div class="fg">
             <label>Correct Answer</label>
-            <select id="s-correct">
-              <option value="A">A</option>
-              <option value="B">B</option>
-              <option value="C">C</option>
-              <option value="D">D</option>
+            <select id="s-ans">
+              <option value="A">A</option><option value="B">B</option>
+              <option value="C">C</option><option value="D">D</option>
             </select>
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="fg">
           <label>Question Text</label>
-          <textarea id="s-question" rows="3" placeholder="Type the question here..."></textarea>
+          <textarea id="s-q" rows="3" placeholder="Type question here..."></textarea>
         </div>
 
-        <div class="form-group">
+        <div class="fg">
           <label>Answer Options</label>
-          <div class="options-grid">
-            <div class="option-item">
-              <span class="option-label">A</span>
-              <input type="text" id="s-optA" placeholder="Option A">
-            </div>
-            <div class="option-item">
-              <span class="option-label">B</span>
-              <input type="text" id="s-optB" placeholder="Option B">
-            </div>
-            <div class="option-item">
-              <span class="option-label">C</span>
-              <input type="text" id="s-optC" placeholder="Option C">
-            </div>
-            <div class="option-item">
-              <span class="option-label">D</span>
-              <input type="text" id="s-optD" placeholder="Option D">
-            </div>
+          <div class="opts">
+            <div class="opt-wrap"><span class="opt-letter">A</span><input type="text" id="s-a" placeholder="Option A"></div>
+            <div class="opt-wrap"><span class="opt-letter">B</span><input type="text" id="s-b" placeholder="Option B"></div>
+            <div class="opt-wrap"><span class="opt-letter">C</span><input type="text" id="s-c" placeholder="Option C"></div>
+            <div class="opt-wrap"><span class="opt-letter">D</span><input type="text" id="s-d" placeholder="Option D"></div>
           </div>
         </div>
 
-        <div class="form-group">
+        <div class="fg">
+          <label>Explanation (Optional)</label>
+          <textarea id="s-exp" rows="2" placeholder="Explain why the answer is correct..."></textarea>
+        </div>
+
+        <div class="fg">
           <label>Question Image (Optional)</label>
-          <div class="img-upload-area" id="img-drop-area" onclick="document.getElementById('img-file').click()">
-            <div style="font-size:32px;">🖼️</div>
-            <p>Click to upload image or drag & drop</p>
-            <img class="img-preview" id="img-preview">
+          <div class="img-area" id="img-area" onclick="document.getElementById('img-file').click()">
+            📷 Click to upload image
+            <img class="img-preview" id="img-prev">
           </div>
-          <input type="file" id="img-file" accept="image/*" style="display:none" onchange="handleImageSelect(this)">
+          <input type="file" id="img-file" accept="image/*" style="display:none">
         </div>
 
-        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-          <button class="submit-btn" id="single-btn" onclick="addSingleQuestion()">Add Question →</button>
-          <button style="padding:13px 20px; background:var(--gray-100); color:var(--gray-600); border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; cursor:pointer;" onclick="clearSingleForm()">Clear Form</button>
-        </div>
+        <button class="btn btn-primary" id="s-btn">Add Question →</button>
       </div>
     </div>
 
-    <!-- BULK UPLOAD -->
-    <div class="tab-panel" id="tab-bulk">
-      <div class="bulk-card">
+    <!-- CSV UPLOAD -->
+    <div class="panel" id="panel-bulk">
+      <div class="card">
         <h3>📤 Bulk CSV Upload</h3>
-        <p>Upload hundreds of questions at once using a CSV file. Download the template below, fill it in, and upload.</p>
+        <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px;">Upload many questions at once using a CSV file.</p>
 
-        <div class="form-row" style="margin-bottom:16px;">
-          <div class="form-group">
+        <div class="row2">
+          <div class="fg">
             <label>University</label>
-            <select id="b-uni" onchange="loadSubjectsForSelect('b-uni', 'b-subject')">
-              <option value="OAU">OAU</option>
-              <option value="UI">UI</option>
-            </select>
+            <select id="b-uni"><option value="OAU">OAU</option><option value="UI">UI</option></select>
           </div>
-          <div class="form-group">
+          <div class="fg">
             <label>Subject</label>
-            <select id="b-subject"><option value="">-- Select University First --</option></select>
+            <select id="b-subj"><option value="">Loading...</option></select>
           </div>
         </div>
 
-        <div class="csv-template">
-question,option_a,option_b,option_c,option_d,correct_answer,year<br>
-What is photosynthesis?,A process,B process,C process,D process,A,2023<br>
-What is osmosis?,A process,B process,C process,D process,B,2022
+        <div style="background:#1e2235;border-radius:10px;padding:14px;font-family:monospace;font-size:11px;color:#a0e4a0;margin-bottom:14px;overflow-x:auto;">
+          question,option_a,option_b,option_c,option_d,correct_answer,year<br>
+          What is osmosis?,Water movement,Salt movement,Air movement,None,A,2023
         </div>
 
-        <button onclick="downloadTemplate()" style="padding:10px 20px; background:var(--gray-100); color:var(--gray-800); border:none; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; margin-bottom:20px;">⬇️ Download CSV Template</button>
+        <button class="btn btn-secondary" id="dl-btn" style="width:100%;margin-bottom:14px;">⬇️ Download CSV Template</button>
 
-        <div class="upload-area" id="csv-drop-area"
-          ondragover="handleDragOver(event,'csv-drop-area')"
-          ondragleave="handleDragLeave(event,'csv-drop-area')"
-          ondrop="handleDrop(event)"
-          onclick="document.getElementById('csv-file').click()">
-          <div class="upload-icon">📄</div>
+        <div class="drop-area" id="csv-area">
+          <div class="drop-icon">📄</div>
           <h4>Drop CSV file here</h4>
-          <p>or click to browse — .csv files only</p>
+          <p>or click to browse</p>
         </div>
-        <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleCSVSelect(this)">
+        <input type="file" id="csv-file" accept=".csv" style="display:none">
 
-        <div class="upload-progress" id="upload-progress">
-          <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-          <div class="progress-text" id="progress-text">Uploading 0 of 0 questions...</div>
+        <div class="prog-wrap" id="b-prog">
+          <div class="prog-bar"><div class="prog-fill" id="b-fill"></div></div>
+          <div class="prog-text" id="b-text">Uploading...</div>
         </div>
 
-        <div class="alert" id="bulk-alert" style="margin-top:16px;"></div>
-
+        <div class="alert" id="b-alert" style="margin-top:12px;"></div>
         <div id="csv-preview"></div>
-
-        <div id="bulk-actions" style="display:none; margin-top:20px; display:none;">
-          <button class="submit-btn" id="bulk-btn" onclick="uploadBulkQuestions()">Upload All Questions →</button>
+        <div id="b-action" style="display:none;margin-top:14px;">
+          <button class="btn btn-primary" id="b-btn">Upload All Questions →</button>
         </div>
       </div>
     </div>
 
     <!-- PDF UPLOAD -->
-    <div class="tab-panel" id="tab-pdf">
-      <div class="bulk-card">
-        <h3>📄 Upload Questions from PDF</h3>
-        <p>Upload a PDF containing questions in this format:<br>
-        <strong>Q1. Question text?</strong><br>
-        A. Option A &nbsp; B. Option B &nbsp; C. Option C &nbsp; D. Option D<br>
-        <strong>Answer: A</strong></p>
+    <div class="panel" id="panel-pdf">
+      <div class="card">
+        <h3>📄 Upload from PDF</h3>
+        <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px;">PDF questions must follow this format:<br><strong>1. Question? A. opt B. opt C. opt D. opt Answer: A Explanation: ...</strong></p>
 
-        <div class="form-row" style="margin-bottom:16px;">
-          <div class="form-group">
+        <div class="row2">
+          <div class="fg">
             <label>University</label>
-            <select id="p-uni" onchange="loadSubjectsForSelect('p-uni', 'p-subject')">
-              <option value="OAU">OAU</option>
-              <option value="UI">UI</option>
-            </select>
+            <select id="p-uni"><option value="OAU">OAU</option><option value="UI">UI</option></select>
           </div>
-          <div class="form-group">
+          <div class="fg">
             <label>Subject</label>
-            <select id="p-subject"><option value="">-- Select University First --</option></select>
+            <select id="p-subj"><option value="">Loading...</option></select>
           </div>
         </div>
 
-        <div class="upload-area" id="pdf-drop-area"
-          ondragover="handleDragOver(event,'pdf-drop-area')"
-          ondragleave="handleDragLeave(event,'pdf-drop-area')"
-          ondrop="handlePDFDrop(event)"
-          onclick="document.getElementById('pdf-file').click()">
-          <div class="upload-icon">📄</div>
+        <div class="drop-area" id="pdf-area">
+          <div class="drop-icon">📕</div>
           <h4>Drop PDF file here</h4>
-          <p>or click to browse — .pdf files only</p>
+          <p>or click to browse</p>
         </div>
-        <input type="file" id="pdf-file" accept=".pdf" style="display:none" onchange="handlePDFSelect(this)">
+        <input type="file" id="pdf-file" accept=".pdf" style="display:none">
 
-        <div class="alert" id="pdf-alert" style="margin-top:16px;"></div>
-
+        <div class="alert" id="p-alert" style="margin-top:12px;"></div>
         <div id="pdf-preview"></div>
-
-        <div id="pdf-actions" style="display:none;margin-top:20px;">
-          <button class="submit-btn" id="pdf-upload-btn" onclick="uploadPDFQuestions()">Upload Parsed Questions →</button>
+        <div id="p-action" style="display:none;margin-top:14px;">
+          <button class="btn btn-primary" id="p-btn">Upload Parsed Questions →</button>
         </div>
       </div>
     </div>
 
     <!-- VIEW QUESTIONS -->
-    <div class="tab-panel" id="tab-list">
-      <div class="list-card">
-        <div class="list-header">
-          <h3>All Questions</h3>
-          <div class="filters">
-            <select class="filter-select" id="f-uni" onchange="loadSubjectsForSelect('f-uni', 'f-subject'); loadQuestions()">
-              <option value="">All Universities</option>
-              <option value="OAU">OAU</option>
-              <option value="UI">UI</option>
-            </select>
-            <select class="filter-select" id="f-subject" onchange="loadQuestions()">
-              <option value="">All Subjects</option>
-            </select>
-          </div>
+    <div class="panel" id="panel-list">
+      <div class="card">
+        <h3>📋 All Questions</h3>
+        <div class="filter-row">
+          <select class="filter-sel" id="f-uni"><option value="">All Universities</option><option value="OAU">OAU</option><option value="UI">UI</option></select>
+          <select class="filter-sel" id="f-subj"><option value="">All Subjects</option></select>
         </div>
-        <div id="questions-list"><div class="empty-state"><div class="empty-icon">❓</div>Select a filter to view questions</div></div>
+        <div id="q-list"><div class="empty"><div class="empty-icon">❓</div>Select a filter above</div></div>
       </div>
     </div>
 
@@ -465,594 +348,387 @@ What is osmosis?,A process,B process,C process,D process,B,2022
 </div>
 
 <script>
-  const SUPABASE_URL = 'https://xdixrqlhctisthfdvzvn.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
-  const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  let parsedCSV = [];
-  let selectedImageFile = null;
-  let allSubjects = [];
-
-  async function init() {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { window.location.href = 'admin-login.html'; return; }
-    const { data: adminData } = await sb.from('admins').select('id').eq('id', session.user.id).single();
-    if (!adminData) { window.location.href = 'admin-login.html'; return; }
-
-    // Load all subjects first then populate all dropdowns
-    await loadAllSubjects();
-    loadSubjectsForSelect('s-uni', 's-subject');
-    loadSubjectsForSelect('b-uni', 'b-subject');
-    loadSubjectsForSelect('p-uni', 'p-subject');
-    loadSubjectsForSelect('f-uni', 'f-subject');
-
-    // Also ensure changing university reloads subjects
-    document.getElementById('s-uni').addEventListener('change', () => loadSubjectsForSelect('s-uni', 's-subject'));
-    document.getElementById('b-uni').addEventListener('change', () => loadSubjectsForSelect('b-uni', 'b-subject'));
-    document.getElementById('f-uni').addEventListener('change', () => {
-      loadSubjectsForSelect('f-uni', 'f-subject');
-      loadQuestions();
-    });
-  }
-
-  async function loadAllSubjects() {
-    try {
-      const { data, error } = await sb.from('subjects').select('*').order('university').order('name');
-      if (error) throw error;
-      allSubjects = data || [];
-      console.log('Subjects loaded:', allSubjects.length);
-    } catch(e) {
-      console.error('Failed to load subjects:', e);
-      allSubjects = [];
-    }
-  }
-
-  function loadSubjectsForSelect(uniSelectId, subjectSelectId) {
-    const uniEl = document.getElementById(uniSelectId);
-    const subjectSelect = document.getElementById(subjectSelectId);
-    if (!uniEl || !subjectSelect) return;
-    const uni = uniEl.value;
-    const filtered = uni ? allSubjects.filter(s => s.university === uni) : allSubjects;
-
-    if (filtered.length === 0) {
-      subjectSelect.innerHTML = '<option value="">⚠️ No subjects yet — add in Subjects page</option>';
-    } else {
-      subjectSelect.innerHTML = filtered.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-    }
-  }
-
-  // ── TABS ───────────────────────────────────────────────────────
-  function switchTab(tab, btn) {
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + tab).classList.add('active');
-    btn.classList.add('active');
-    if (tab === 'list') loadQuestions();
-    if (tab === 'pdf') loadSubjectsForSelect('p-uni', 'p-subject');
-  }
-
-  // ── DRAG HELPERS ───────────────────────────────────────────────
-  function handleDragOver(e, id) {
-    e.preventDefault();
-    document.getElementById(id).classList.add('dragover');
-  }
-
-  function handleDragLeave(e, id) {
-    document.getElementById(id).classList.remove('dragover');
-  }
-
-  // ── PDF UPLOAD ─────────────────────────────────────────────────
-  let parsedPDFQuestions = [];
-
-  function handlePDFDrop(e) {
-    e.preventDefault();
-    document.getElementById('pdf-drop-area').classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file && file.type === 'application/pdf') processPDF(file);
-    else showPDFAlert('Please drop a .pdf file only.', 'error');
-  }
-
-  function handlePDFSelect(input) {
-    const file = input.files[0];
-    if (file) processPDF(file);
-  }
-
-  function showPDFAlert(msg, type) {
-    const el = document.getElementById('pdf-alert');
-    el.textContent = msg;
-    el.className = 'alert show ' + type;
-  }
-
-  async function processPDF(file) {
-    showPDFAlert('Reading PDF... please wait.', 'success');
-    document.getElementById('pdf-drop-area').classList.add('has-file');
-
-    try {
-      // Load PDF.js from CDN
-      if (!window.pdfjsLib) {
-        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      }
-
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-
-      let fullText = '';
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        fullText += textContent.items.map(item => item.str).join(' ') + '
-';
-      }
-
-      parsedPDFQuestions = parsePDFText(fullText);
-
-      if (parsedPDFQuestions.length === 0) {
-        showPDFAlert('Could not parse questions from this PDF. Make sure format is: Q1. Question? A. opt B. opt C. opt D. opt Answer: A', 'error');
-        return;
-      }
-
-      showPDFAlert(`✅ Found ${parsedPDFQuestions.length} questions! Review below then click Upload.`, 'success');
-      showPDFPreview();
-      document.getElementById('pdf-actions').style.display = 'block';
-
-    } catch(e) {
-      showPDFAlert('Failed to read PDF: ' + e.message, 'error');
-    }
-  }
-
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = src;
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-  }
-
-  function parsePDFText(text) {
-    const questions = [];
-    const lines = text.split(/\n/);
-    let currentBlock = '';
-    let inQuestion = false;
-    const blocks = [];
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      if (/^Q?\d{1,3}[\.)\]\s]/.test(trimmed)) {
-        if (currentBlock && inQuestion) blocks.push(currentBlock);
-        currentBlock = trimmed;
-        inQuestion = true;
-      } else if (inQuestion) {
-        currentBlock += ' ' + trimmed;
-      }
-    }
-    if (currentBlock) blocks.push(currentBlock);
-
-    for (const block of blocks) {
-      try {
-        const qMatch = block.match(/^Q?\d{1,3}[.\)\]]\s*(.+?)(?=[Aa][.\)\]\/]\s)/s);
-        if (!qMatch) continue;
-        const questionText = qMatch[1].trim().replace(/\s+/g, ' ');
-
-        const aMatch = block.match(/[Aa][.\)\]\/]\s*(.+?)(?=[Bb][.\)\]\/]\s)/s);
-        const bMatch = block.match(/[Bb][.\)\]\/]\s*(.+?)(?=[Cc][.\)\]\/]\s)/s);
-        const cMatch = block.match(/[Cc][.\)\]\/]\s*(.+?)(?=[Dd][.\)\]\/]\s)/s);
-        const dMatch = block.match(/[Dd][.\)\]\/]\s*(.+?)(?=[Aa]ns|[Ee]xp|[Ss]ol|[Cc]orrect|\d{1,3}[.\)\]]|$)/s);
-
-        const ansMatch = block.match(/(?:[Aa]nswer|[Aa]ns|[Cc]orrect(?:\s*[Aa]nswer)?)\s*[:\-]?\s*\(?([ABCDabcd])\)?/);
-
-        // Capture explanation — everything after Explanation: Exp: Solution: etc
-        const expMatch = block.match(/(?:[Ee]xplanation|[Ee]xp|[Ss]olution|[Rr]eason|[Ee]xplanation\s*[:\-])\s*(.+?)(?=Q?\d{1,3}[.\)\]]|$)/s);
-
-        if (!aMatch || !bMatch || !cMatch || !dMatch) continue;
-
-        const clean = s => s.trim().replace(/\s+/g, ' ');
-
-        questions.push({
-          question: clean(questionText),
-          option_a: clean(aMatch[1]),
-          option_b: clean(bMatch[1]),
-          option_c: clean(cMatch[1]),
-          option_d: clean(dMatch[1]),
-          correct_answer: ansMatch ? ansMatch[1].toUpperCase() : 'A',
-          explanation: expMatch ? clean(expMatch[1]) : '',
-          year: null
-        });
-      } catch(e) { continue; }
-    }
-    return questions;
-  }
-
-  function showPDFPreview() {
-    const preview = document.getElementById('pdf-preview');
-    const sample = parsedPDFQuestions.slice(0, 5);
-    const withExp = parsedPDFQuestions.filter(q => q.explanation).length;
-    preview.innerHTML = `
-      <p style="font-size:13px;color:var(--gray-400);margin:16px 0 4px;">Preview (first 5 of ${parsedPDFQuestions.length} questions)</p>
-      <p style="font-size:12px;color:var(--success);margin-bottom:10px;">✅ ${withExp} questions have explanations</p>
-      <div style="overflow-x:auto;">
-        <table class="preview-table">
-          <thead>
-            <tr><th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Ans</th><th>Explanation</th></tr>
-          </thead>
-          <tbody>
-            ${sample.map((q, i) => `
-              <tr>
-                <td>${i + 1}</td>
-                <td>${q.question.substring(0, 50)}${q.question.length > 50 ? '...' : ''}</td>
-                <td>${(q.option_a||'').substring(0, 15)}</td>
-                <td>${(q.option_b||'').substring(0, 15)}</td>
-                <td>${(q.option_c||'').substring(0, 15)}</td>
-                <td>${(q.option_d||'').substring(0, 15)}</td>
-                <td><strong>${q.correct_answer}</strong></td>
-                <td style="color:var(--success);font-size:11px;">${q.explanation ? q.explanation.substring(0, 40)+'...' : '—'}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  }
-
-  async function uploadPDFQuestions() {
-    const subjectId = document.getElementById('p-subject').value;
-    const uni = document.getElementById('p-uni').value;
-    if (!subjectId) return showPDFAlert('Please select a subject first.', 'error');
-    if (parsedPDFQuestions.length === 0) return showPDFAlert('No questions to upload.', 'error');
-
-    const btn = document.getElementById('pdf-upload-btn');
-    btn.disabled = true; btn.textContent = 'Uploading...';
-
-    try {
-      const batchSize = 50;
-      let uploaded = 0;
-      for (let i = 0; i < parsedPDFQuestions.length; i += batchSize) {
-        const batch = parsedPDFQuestions.slice(i, i + batchSize).map(q => ({
-          ...q, subject_id: subjectId, university: uni
-        }));
-        const { error } = await sb.from('questions').insert(batch);
-        if (error) throw error;
-        uploaded += batch.length;
-        btn.textContent = `Uploading... ${uploaded}/${parsedPDFQuestions.length}`;
-      }
-
-      await updateQuestionCount(subjectId);
-      showPDFAlert(`🎉 ${parsedPDFQuestions.length} questions uploaded from PDF!`, 'success');
-      parsedPDFQuestions = [];
-      document.getElementById('pdf-preview').innerHTML = '';
-      document.getElementById('pdf-actions').style.display = 'none';
-      document.getElementById('pdf-drop-area').classList.remove('has-file');
-    } catch(e) {
-      showPDFAlert(e.message || 'Upload failed.', 'error');
-    } finally {
-      btn.disabled = false; btn.textContent = 'Upload Parsed Questions →';
-    }
-  }
-
-  // ── SINGLE UPLOAD ──────────────────────────────────────────────
-  function showSingleAlert(msg, type) {
-    const el = document.getElementById('single-alert');
-    el.textContent = msg; el.className = 'alert show ' + type;
-    setTimeout(() => el.className = 'alert', 5000);
-  }
-
-  function handleImageSelect(input) {
-    const file = input.files[0];
-    if (!file) return;
-    selectedImageFile = file;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const preview = document.getElementById('img-preview');
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-      document.getElementById('img-drop-area').classList.add('has-image');
-    };
-    reader.readAsDataURL(file);
-  }
-
-  async function addSingleQuestion() {
-    const subjectId = document.getElementById('s-subject').value;
-    const uni = document.getElementById('s-uni').value;
-    const question = document.getElementById('s-question').value.trim();
-    const optA = document.getElementById('s-optA').value.trim();
-    const optB = document.getElementById('s-optB').value.trim();
-    const optC = document.getElementById('s-optC').value.trim();
-    const optD = document.getElementById('s-optD').value.trim();
-    const correct = document.getElementById('s-correct').value;
-    const year = document.getElementById('s-year').value || null;
-
-    if (!subjectId) return showSingleAlert('⚠️ No subjects found. Go to Subjects page and add subjects first.', 'error');
-    if (!question) return showSingleAlert('Please enter the question text.', 'error');
-    if (!optA || !optB || !optC || !optD) return showSingleAlert('Please fill in all 4 options.', 'error');
-
-    const btn = document.getElementById('single-btn');
-    btn.disabled = true; btn.textContent = 'Uploading...';
-
-    try {
-      let imageUrl = null;
-
-      // Upload image if selected
-      if (selectedImageFile) {
-        const fileName = `questions/${Date.now()}_${selectedImageFile.name}`;
-        const { data: imgData, error: imgError } = await sb.storage
-          .from('question-images')
-          .upload(fileName, selectedImageFile);
-
-        if (!imgError) {
-          const { data: urlData } = sb.storage.from('question-images').getPublicUrl(fileName);
-          imageUrl = urlData.publicUrl;
-        }
-      }
-
-      const { error } = await sb.from('questions').insert({
-        subject_id: subjectId,
-        university: uni,
-        question,
-        option_a: optA,
-        option_b: optB,
-        option_c: optC,
-        option_d: optD,
-        correct_answer: correct,
-        image_url: imageUrl,
-        year: year ? parseInt(year) : null
-      });
-
-      if (error) throw error;
-
-      // Update question count
-      await updateQuestionCount(subjectId);
-
-      showSingleAlert('✅ Question added successfully!', 'success');
-      clearSingleForm();
-
-    } catch(e) {
-      showSingleAlert(e.message || 'Failed to add question.', 'error');
-    } finally {
-      btn.disabled = false; btn.textContent = 'Add Question →';
-    }
-  }
-
-  function clearSingleForm() {
-    document.getElementById('s-question').value = '';
-    document.getElementById('s-optA').value = '';
-    document.getElementById('s-optB').value = '';
-    document.getElementById('s-optC').value = '';
-    document.getElementById('s-optD').value = '';
-    document.getElementById('s-year').value = '';
-    document.getElementById('s-correct').value = 'A';
-    document.getElementById('img-preview').style.display = 'none';
-    document.getElementById('img-drop-area').classList.remove('has-image');
-    selectedImageFile = null;
-  }
-
-  // ── BULK UPLOAD ────────────────────────────────────────────────
-  // drag handlers are now generic above
-
-  function handleDrop(e) {
-    e.preventDefault();
-    document.getElementById('csv-drop-area').classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file && file.name.endsWith('.csv')) processCSV(file);
-    else showBulkAlert('Please drop a .csv file only.', 'error');
-  }
-
-  function handleCSVSelect(input) {
-    const file = input.files[0];
-    if (file) processCSV(file);
-  }
-
-  function processCSV(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target.result;
-      const lines = text.trim().split('\n');
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-
-      parsedCSV = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        if (values.length < 6) continue;
-        parsedCSV.push({
-          question: values[0],
-          option_a: values[1],
-          option_b: values[2],
-          option_c: values[3],
-          option_d: values[4],
-          correct_answer: values[5].toUpperCase(),
-          year: values[6] ? parseInt(values[6]) : null
-        });
-      }
-
-      if (parsedCSV.length === 0) {
-        showBulkAlert('No valid questions found in CSV.', 'error');
-        return;
-      }
-
-      document.getElementById('csv-drop-area').classList.add('has-file');
-      showCSVPreview();
-      document.getElementById('bulk-actions').style.display = 'block';
-      showBulkAlert(`✅ ${parsedCSV.length} questions ready to upload. Review below then click Upload.`, 'success');
-    };
-    reader.readAsText(file);
-  }
-
-  function showCSVPreview() {
-    const preview = document.getElementById('csv-preview');
-    const sample = parsedCSV.slice(0, 5);
-    preview.innerHTML = `
-      <p style="font-size:13px; color:var(--gray-400); margin:16px 0 8px;">Preview (first 5 of ${parsedCSV.length} questions):</p>
-      <div style="overflow-x:auto;">
-        <table class="preview-table">
-          <thead>
-            <tr><th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Answer</th></tr>
-          </thead>
-          <tbody>
-            ${sample.map((q, i) => `
-              <tr>
-                <td>${i + 1}</td>
-                <td>${q.question.substring(0, 50)}${q.question.length > 50 ? '...' : ''}</td>
-                <td>${q.option_a}</td>
-                <td>${q.option_b}</td>
-                <td>${q.option_c}</td>
-                <td>${q.option_d}</td>
-                <td><strong>${q.correct_answer}</strong></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  function showBulkAlert(msg, type) {
-    const el = document.getElementById('bulk-alert');
-    el.textContent = msg; el.className = 'alert show ' + type;
-  }
-
-  async function uploadBulkQuestions() {
-    const subjectId = document.getElementById('b-subject').value;
-    const uni = document.getElementById('b-uni').value;
-
-    if (!subjectId) return showBulkAlert('Please select a subject first.', 'error');
-    if (parsedCSV.length === 0) return showBulkAlert('No questions to upload.', 'error');
-
-    const btn = document.getElementById('bulk-btn');
-    btn.disabled = true; btn.textContent = 'Uploading...';
-
-    const progressDiv = document.getElementById('upload-progress');
-    const progressFill = document.getElementById('progress-fill');
-    const progressText = document.getElementById('progress-text');
-    progressDiv.style.display = 'block';
-
-    try {
-      const batchSize = 50;
-      let uploaded = 0;
-
-      for (let i = 0; i < parsedCSV.length; i += batchSize) {
-        const batch = parsedCSV.slice(i, i + batchSize).map(q => ({
-          ...q,
-          subject_id: subjectId,
-          university: uni
-        }));
-
-        const { error } = await sb.from('questions').insert(batch);
-        if (error) throw error;
-
-        uploaded += batch.length;
-        const pct = Math.round((uploaded / parsedCSV.length) * 100);
-        progressFill.style.width = pct + '%';
-        progressText.textContent = `Uploading ${uploaded} of ${parsedCSV.length} questions... ${pct}%`;
-      }
-
-      // Update question count
-      await updateQuestionCount(subjectId);
-
-      progressFill.style.width = '100%';
-      progressText.textContent = `✅ All ${parsedCSV.length} questions uploaded successfully!`;
-      showBulkAlert(`🎉 ${parsedCSV.length} questions uploaded to ${uni}!`, 'success');
-      parsedCSV = [];
-      document.getElementById('csv-preview').innerHTML = '';
-      document.getElementById('bulk-actions').style.display = 'none';
-      document.getElementById('csv-drop-area').classList.remove('has-file');
-
-    } catch(e) {
-      showBulkAlert(e.message || 'Upload failed. Please try again.', 'error');
-    } finally {
-      btn.disabled = false; btn.textContent = 'Upload All Questions →';
-    }
-  }
-
-  async function updateQuestionCount(subjectId) {
-    const { count } = await sb.from('questions').select('*', { count: 'exact', head: true }).eq('subject_id', subjectId);
-    await sb.from('subjects').update({ question_count: count || 0 }).eq('id', subjectId);
-  }
-
-  // ── VIEW QUESTIONS ─────────────────────────────────────────────
-  async function loadQuestions() {
-    const container = document.getElementById('questions-list');
-    const uni = document.getElementById('f-uni').value;
-    const subjectId = document.getElementById('f-subject').value;
-
-    container.innerHTML = '<div class="empty-state"><div class="empty-icon">⏳</div>Loading...</div>';
-
-    try {
-      let query = sb.from('questions').select('*, subjects(name)').order('created_at', { ascending: false }).limit(50);
-      if (uni) query = query.eq('university', uni);
-      if (subjectId) query = query.eq('subject_id', subjectId);
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        container.innerHTML = '<div class="empty-state"><div class="empty-icon">❓</div>No questions found</div>';
-        return;
-      }
-
-      container.innerHTML = data.map((q, i) => `
-        <div class="q-item">
-          <div class="q-num">#${i + 1}</div>
-          <div class="q-content">
-            <div class="q-text">${q.question}</div>
-            <div class="q-options">
-              <div class="q-option ${q.correct_answer === 'A' ? 'correct' : ''}">A. ${q.option_a}</div>
-              <div class="q-option ${q.correct_answer === 'B' ? 'correct' : ''}">B. ${q.option_b}</div>
-              <div class="q-option ${q.correct_answer === 'C' ? 'correct' : ''}">C. ${q.option_c}</div>
-              <div class="q-option ${q.correct_answer === 'D' ? 'correct' : ''}">D. ${q.option_d}</div>
-            </div>
-            <div class="q-meta">${q.subjects?.name || ''} • ${q.university} ${q.year ? '• ' + q.year : ''}</div>
-          </div>
-          <div class="q-actions">
-            <button class="icon-btn delete" onclick="deleteQuestion('${q.id}', '${q.subject_id}')">🗑️</button>
-          </div>
-        </div>
-      `).join('');
-
-    } catch(e) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-icon">❌</div>Failed to load questions</div>';
-    }
-  }
-
-  async function deleteQuestion(id, subjectId) {
-    if (!confirm('Delete this question?')) return;
-    await sb.from('questions').delete().eq('id', id);
-    await updateQuestionCount(subjectId);
-    loadQuestions();
-  }
-
-  function downloadTemplate() {
-    const csv = 'question,option_a,option_b,option_c,option_d,correct_answer,year\nWhat is photosynthesis?,Light reaction,Dark reaction,Both A and B,None of the above,C,2023\n';
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'questions-template.csv'; a.click();
-  }
-
-  function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    sidebar.classList.toggle('open');
-    overlay.classList.toggle('show');
-    document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
-  }
-
-  function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebar-overlay').classList.remove('show');
-    document.body.style.overflow = '';
-  }
-
-  async function handleLogout() { await sb.auth.signOut(); window.location.href = 'admin-login.html'; }
-
-  // Global error handler to debug click issues
-  window.onerror = function(msg, src, line, col, err) {
-    console.error('JS Error:', msg, 'Line:', line);
-    return false;
+const SB_URL = 'https://xdixrqlhctisthfdvzvn.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+let subjects = [];
+let csvData = [];
+let pdfData = [];
+let imgFile = null;
+
+// ── AUTH ────────────────────────────────────────────────
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = 'admin-login.html'; return; }
+  const { data } = await sb.from('admins').select('id').eq('id', session.user.id).single();
+  if (!data) { await sb.auth.signOut(); location.href = 'admin-login.html'; return; }
+  await loadSubjects();
+}
+
+// ── SUBJECTS ────────────────────────────────────────────
+async function loadSubjects() {
+  const { data } = await sb.from('subjects').select('*').order('university').order('name');
+  subjects = data || [];
+  fillSubjectSelect('s-uni', 's-subj');
+  fillSubjectSelect('b-uni', 'b-subj');
+  fillSubjectSelect('p-uni', 'p-subj');
+  fillSubjectSelect('f-uni', 'f-subj');
+}
+
+function fillSubjectSelect(uniId, subjId) {
+  const uni = document.getElementById(uniId).value;
+  const sel = document.getElementById(subjId);
+  const list = subjects.filter(s => s.university === uni);
+  sel.innerHTML = list.length === 0
+    ? '<option value="">No subjects — add in Subjects page</option>'
+    : list.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+// ── TABS ────────────────────────────────────────────────
+function showTab(name) {
+  ['single','bulk','pdf','list'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('on', t === name);
+    document.getElementById('panel-' + t).classList.toggle('on', t === name);
+  });
+  if (name === 'list') loadQuestions();
+}
+
+document.getElementById('tab-single').onclick = () => showTab('single');
+document.getElementById('tab-bulk').onclick   = () => showTab('bulk');
+document.getElementById('tab-pdf').onclick    = () => showTab('pdf');
+document.getElementById('tab-list').onclick   = () => showTab('list');
+
+// University change listeners
+document.getElementById('s-uni').onchange = () => fillSubjectSelect('s-uni','s-subj');
+document.getElementById('b-uni').onchange = () => fillSubjectSelect('b-uni','b-subj');
+document.getElementById('p-uni').onchange = () => fillSubjectSelect('p-uni','p-subj');
+document.getElementById('f-uni').onchange = () => { fillSubjectSelect('f-uni','f-subj'); loadQuestions(); };
+document.getElementById('f-subj').onchange = loadQuestions;
+
+// ── ALERT HELPERS ───────────────────────────────────────
+function alert_(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'alert on ' + (type === 'ok' ? 'ok' : 'err');
+  if (type === 'ok') setTimeout(() => el.classList.remove('on'), 5000);
+}
+
+// ── IMAGE UPLOAD ────────────────────────────────────────
+document.getElementById('img-file').onchange = function() {
+  imgFile = this.files[0];
+  if (!imgFile) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('img-prev');
+    prev.src = e.target.result;
+    prev.style.display = 'block';
   };
+  reader.readAsDataURL(imgFile);
+};
 
-  init();
+// ── SINGLE UPLOAD ───────────────────────────────────────
+document.getElementById('s-btn').onclick = async function() {
+  const subj  = document.getElementById('s-subj').value;
+  const uni   = document.getElementById('s-uni').value;
+  const q     = document.getElementById('s-q').value.trim();
+  const a     = document.getElementById('s-a').value.trim();
+  const b     = document.getElementById('s-b').value.trim();
+  const c     = document.getElementById('s-c').value.trim();
+  const d     = document.getElementById('s-d').value.trim();
+  const ans   = document.getElementById('s-ans').value;
+  const year  = document.getElementById('s-year').value || null;
+  const exp   = document.getElementById('s-exp').value.trim();
+
+  if (!subj) return alert_('s-alert','⚠️ Add subjects first in the Subjects page','err');
+  if (!q)    return alert_('s-alert','Please enter question text','err');
+  if (!a||!b||!c||!d) return alert_('s-alert','Please fill all 4 options','err');
+
+  this.disabled = true; this.textContent = 'Saving...';
+
+  try {
+    let imageUrl = null;
+    if (imgFile) {
+      const fname = `questions/${Date.now()}_${imgFile.name}`;
+      const { error: upErr } = await sb.storage.from('question-images').upload(fname, imgFile);
+      if (!upErr) {
+        const { data: urlData } = sb.storage.from('question-images').getPublicUrl(fname);
+        imageUrl = urlData.publicUrl;
+      }
+    }
+
+    const { error } = await sb.from('questions').insert({
+      subject_id: subj, university: uni, question: q,
+      option_a: a, option_b: b, option_c: c, option_d: d,
+      correct_answer: ans, explanation: exp || null,
+      image_url: imageUrl, year: year ? parseInt(year) : null
+    });
+    if (error) throw error;
+
+    await updateCount(subj);
+    alert_('s-alert','✅ Question added!','ok');
+    document.getElementById('s-q').value = '';
+    document.getElementById('s-a').value = '';
+    document.getElementById('s-b').value = '';
+    document.getElementById('s-c').value = '';
+    document.getElementById('s-d').value = '';
+    document.getElementById('s-exp').value = '';
+    document.getElementById('s-year').value = '';
+    document.getElementById('img-prev').style.display = 'none';
+    imgFile = null;
+  } catch(e) {
+    alert_('s-alert', e.message || 'Failed to add question', 'err');
+  }
+  this.disabled = false; this.textContent = 'Add Question →';
+};
+
+// ── CSV ─────────────────────────────────────────────────
+document.getElementById('csv-area').onclick = () => document.getElementById('csv-file').click();
+document.getElementById('csv-area').ondragover = e => { e.preventDefault(); document.getElementById('csv-area').classList.add('over'); };
+document.getElementById('csv-area').ondragleave = () => document.getElementById('csv-area').classList.remove('over');
+document.getElementById('csv-area').ondrop = e => { e.preventDefault(); document.getElementById('csv-area').classList.remove('over'); const f = e.dataTransfer.files[0]; if(f) handleCSV(f); };
+document.getElementById('csv-file').onchange = function() { if(this.files[0]) handleCSV(this.files[0]); };
+
+function handleCSV(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.trim().split('\n');
+    csvData = [];
+    for (let i = 1; i < lines.length; i++) {
+      const v = lines[i].split(',').map(x => x.trim().replace(/^"|"$/g,''));
+      if (v.length < 6) continue;
+      csvData.push({ question:v[0], option_a:v[1], option_b:v[2], option_c:v[3], option_d:v[4], correct_answer:v[5].toUpperCase(), year: v[6]?parseInt(v[6]):null });
+    }
+    if (csvData.length === 0) return alert_('b-alert','No valid questions found in CSV','err');
+    document.getElementById('csv-area').classList.add('has');
+    alert_('b-alert', `✅ ${csvData.length} questions ready. Review then click Upload.`, 'ok');
+    const samp = csvData.slice(0,3);
+    document.getElementById('csv-preview').innerHTML = `
+      <p style="font-size:12px;color:var(--gray-400);margin:12px 0 6px;">Preview (${csvData.length} questions):</p>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Ans</th></tr></thead>
+        <tbody>${samp.map((q,i)=>`<tr><td>${i+1}</td><td>${q.question.substring(0,50)}</td><td>${q.option_a.substring(0,15)}</td><td>${q.option_b.substring(0,15)}</td><td>${q.option_c.substring(0,15)}</td><td>${q.option_d.substring(0,15)}</td><td><b>${q.correct_answer}</b></td></tr>`).join('')}</tbody>
+      </table></div>`;
+    document.getElementById('b-action').style.display = 'block';
+  };
+  reader.readAsText(file);
+}
+
+document.getElementById('dl-btn').onclick = () => {
+  const csv = 'question,option_a,option_b,option_c,option_d,correct_answer,year\nWhat is osmosis?,Water moves,Salt moves,Air moves,None,A,2023\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = 'questions-template.csv'; a.click();
+};
+
+document.getElementById('b-btn').onclick = async function() {
+  const subj = document.getElementById('b-subj').value;
+  const uni  = document.getElementById('b-uni').value;
+  if (!subj) return alert_('b-alert','Select a subject first','err');
+  if (csvData.length === 0) return alert_('b-alert','No questions to upload','err');
+
+  this.disabled = true;
+  document.getElementById('b-prog').style.display = 'block';
+
+  try {
+    const batchSize = 50;
+    let done = 0;
+    for (let i = 0; i < csvData.length; i += batchSize) {
+      const batch = csvData.slice(i, i+batchSize).map(q => ({...q, subject_id:subj, university:uni}));
+      const { error } = await sb.from('questions').insert(batch);
+      if (error) throw error;
+      done += batch.length;
+      const pct = Math.round(done/csvData.length*100);
+      document.getElementById('b-fill').style.width = pct + '%';
+      document.getElementById('b-text').textContent = `Uploading ${done}/${csvData.length} (${pct}%)`;
+    }
+    await updateCount(subj);
+    alert_('b-alert', `🎉 ${csvData.length} questions uploaded!`, 'ok');
+    csvData = [];
+    document.getElementById('csv-preview').innerHTML = '';
+    document.getElementById('b-action').style.display = 'none';
+    document.getElementById('csv-area').classList.remove('has');
+  } catch(e) {
+    alert_('b-alert', e.message || 'Upload failed', 'err');
+  }
+  this.disabled = false; this.textContent = 'Upload All Questions →';
+};
+
+// ── PDF ─────────────────────────────────────────────────
+document.getElementById('pdf-area').onclick = () => document.getElementById('pdf-file').click();
+document.getElementById('pdf-area').ondragover = e => { e.preventDefault(); document.getElementById('pdf-area').classList.add('over'); };
+document.getElementById('pdf-area').ondragleave = () => document.getElementById('pdf-area').classList.remove('over');
+document.getElementById('pdf-area').ondrop = e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if(f) handlePDF(f); };
+document.getElementById('pdf-file').onchange = function() { if(this.files[0]) handlePDF(this.files[0]); };
+
+async function handlePDF(file) {
+  alert_('p-alert','⏳ Reading PDF...','ok');
+  try {
+    if (!window.pdfjsLib) {
+      await new Promise((res,rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const pg = await pdf.getPage(i);
+      const tc = await pg.getTextContent();
+      text += tc.items.map(x=>x.str).join(' ') + '\n';
+    }
+    pdfData = parsePDF(text);
+    if (pdfData.length === 0) return alert_('p-alert','Could not parse questions. Check PDF format.','err');
+    const withExp = pdfData.filter(q=>q.explanation).length;
+    alert_('p-alert', `✅ Found ${pdfData.length} questions (${withExp} with explanations)`, 'ok');
+    document.getElementById('pdf-area').classList.add('has');
+    const samp = pdfData.slice(0,3);
+    document.getElementById('pdf-preview').innerHTML = `
+      <div class="tbl-wrap" style="margin-top:12px;"><table>
+        <thead><tr><th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Ans</th><th>Explanation</th></tr></thead>
+        <tbody>${samp.map((q,i)=>`<tr><td>${i+1}</td><td>${q.question.substring(0,50)}</td><td>${(q.option_a||'').substring(0,12)}</td><td>${(q.option_b||'').substring(0,12)}</td><td>${(q.option_c||'').substring(0,12)}</td><td>${(q.option_d||'').substring(0,12)}</td><td><b>${q.correct_answer}</b></td><td style="color:var(--success);font-size:11px;">${q.explanation?q.explanation.substring(0,30)+'...':'—'}</td></tr>`).join('')}</tbody>
+      </table></div>`;
+    document.getElementById('p-action').style.display = 'block';
+  } catch(e) {
+    alert_('p-alert','Failed to read PDF: ' + e.message,'err');
+  }
+}
+
+function parsePDF(text) {
+  const qs = [];
+  const lines = text.split('\n');
+  let block = '', inQ = false;
+  const blocks = [];
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t) continue;
+    if (/^Q?\d{1,3}[.)]\s/.test(t)) {
+      if (block && inQ) blocks.push(block);
+      block = t; inQ = true;
+    } else if (inQ) block += ' ' + t;
+  }
+  if (block) blocks.push(block);
+
+  for (const blk of blocks) {
+    try {
+      const qm = blk.match(/^Q?\d{1,3}[.)]\s*(.+?)(?=[Aa][.)\/]\s)/s);
+      if (!qm) continue;
+      const am = blk.match(/[Aa][.)\/]\s*(.+?)(?=[Bb][.)\/]\s)/s);
+      const bm = blk.match(/[Bb][.)\/]\s*(.+?)(?=[Cc][.)\/]\s)/s);
+      const cm = blk.match(/[Cc][.)\/]\s*(.+?)(?=[Dd][.)\/]\s)/s);
+      const dm = blk.match(/[Dd][.)\/]\s*(.+?)(?=[Aa]ns|[Ee]xp|[Ss]ol|\d{1,3}[.)]|$)/s);
+      const anm = blk.match(/(?:[Aa]nswer|[Aa]ns)\s*[:\-]?\s*\(?([ABCDabcd])\)?/);
+      const exm = blk.match(/(?:[Ee]xplanation|[Ee]xp|[Ss]olution)\s*[:\-]?\s*(.+?)(?=\d{1,3}[.)]|$)/s);
+      if (!am||!bm||!cm||!dm) continue;
+      const c = s => s.trim().replace(/\s+/g,' ');
+      qs.push({
+        question: c(qm[1]), option_a: c(am[1]), option_b: c(bm[1]),
+        option_c: c(cm[1]), option_d: c(dm[1]),
+        correct_answer: anm ? anm[1].toUpperCase() : 'A',
+        explanation: exm ? c(exm[1]) : '', year: null
+      });
+    } catch(e) { continue; }
+  }
+  return qs;
+}
+
+document.getElementById('p-btn').onclick = async function() {
+  const subj = document.getElementById('p-subj').value;
+  const uni  = document.getElementById('p-uni').value;
+  if (!subj) return alert_('p-alert','Select a subject first','err');
+  if (pdfData.length === 0) return alert_('p-alert','No questions to upload','err');
+
+  this.disabled = true; this.textContent = 'Uploading...';
+  try {
+    const batchSize = 50;
+    for (let i = 0; i < pdfData.length; i += batchSize) {
+      const batch = pdfData.slice(i,i+batchSize).map(q=>({...q,subject_id:subj,university:uni}));
+      const { error } = await sb.from('questions').insert(batch);
+      if (error) throw error;
+      this.textContent = `Uploading ${Math.min(i+batchSize,pdfData.length)}/${pdfData.length}...`;
+    }
+    await updateCount(subj);
+    alert_('p-alert', `🎉 ${pdfData.length} questions uploaded!`, 'ok');
+    pdfData = [];
+    document.getElementById('pdf-preview').innerHTML = '';
+    document.getElementById('p-action').style.display = 'none';
+    document.getElementById('pdf-area').classList.remove('has');
+  } catch(e) {
+    alert_('p-alert', e.message || 'Upload failed','err');
+  }
+  this.disabled = false; this.textContent = 'Upload Parsed Questions →';
+};
+
+// ── VIEW QUESTIONS ───────────────────────────────────────
+async function loadQuestions() {
+  const uni  = document.getElementById('f-uni').value;
+  const subj = document.getElementById('f-subj').value;
+  const container = document.getElementById('q-list');
+  container.innerHTML = '<div class="empty"><div class="empty-icon">⏳</div>Loading...</div>';
+
+  let query = sb.from('questions').select('*,subjects(name,icon,color)').order('created_at',{ascending:false}).limit(60);
+  if (uni)  query = query.eq('university', uni);
+  if (subj) query = query.eq('subject_id', subj);
+
+  const { data, error } = await query;
+  if (error || !data || data.length === 0) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">❓</div>No questions found</div>';
+    return;
+  }
+
+  container.innerHTML = data.map((q,i) => `
+    <div class="q-item">
+      <div class="q-n">${i+1}</div>
+      <div class="q-body">
+        <div class="q-txt">${q.question}</div>
+        <div class="q-opts-row">
+          <div class="q-opt ${q.correct_answer==='A'?'cor':''}">A. ${q.option_a}</div>
+          <div class="q-opt ${q.correct_answer==='B'?'cor':''}">B. ${q.option_b}</div>
+          <div class="q-opt ${q.correct_answer==='C'?'cor':''}">C. ${q.option_c}</div>
+          <div class="q-opt ${q.correct_answer==='D'?'cor':''}">D. ${q.option_d}</div>
+        </div>
+        <div class="q-meta">${q.subjects?.name||''} • ${q.university}${q.year?' • '+q.year:''}</div>
+      </div>
+      <button class="del-btn" data-id="${q.id}" data-sid="${q.subject_id}">🗑️</button>
+    </div>`).join('');
+
+  // Delete buttons
+  container.querySelectorAll('.del-btn').forEach(btn => {
+    btn.onclick = async () => {
+      if (!confirm('Delete this question?')) return;
+      await sb.from('questions').delete().eq('id', btn.dataset.id);
+      await updateCount(btn.dataset.sid);
+      loadQuestions();
+    };
+  });
+}
+
+async function updateCount(subjId) {
+  const { count } = await sb.from('questions').select('*',{count:'exact',head:true}).eq('subject_id',subjId);
+  await sb.from('subjects').update({question_count:count||0}).eq('id',subjId);
+}
+
+// ── SIDEBAR ─────────────────────────────────────────────
+document.getElementById('ham-btn').onclick = () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('on');
+};
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('on');
+}
+
+// ── LOGOUT ───────────────────────────────────────────────
+document.getElementById('logout-btn').onclick = async () => {
+  await sb.auth.signOut();
+  location.href = 'admin-login.html';
+};
+
+init();
 </script>
 </body>
 </html>
