@@ -101,13 +101,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--gray-50);color:var(--gray
 .prog-text{font-size:12px;font-weight:600;color:var(--gray-600);}
 
 /* PREVIEW TABLE */
-.tbl-wrap{overflow-x:auto;margin-top:14px;}
-table{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed;}
-th{background:var(--gray-100);padding:9px 10px;text-align:left;font-weight:700;color:var(--gray-600);font-size:10px;text-transform:uppercase;}
-td{padding:9px 10px;border-bottom:1px solid var(--gray-100);color:var(--gray-800);word-break:break-word;vertical-align:top;}
-th:nth-child(1){width:4%;}th:nth-child(2){width:28%;}
-th:nth-child(3),th:nth-child(4),th:nth-child(5),th:nth-child(6){width:13%;}
-th:nth-child(7){width:8%;}th:nth-child(8){width:21%;}
+.tbl-wrap{overflow-x:auto;margin-top:14px;-webkit-overflow-scrolling:touch;}
+table{border-collapse:collapse;font-size:12px;table-layout:auto;min-width:700px;width:100%;}
+th{background:var(--gray-100);padding:9px 10px;text-align:left;font-weight:700;color:var(--gray-600);font-size:10px;text-transform:uppercase;white-space:nowrap;}
+td{padding:9px 10px;border-bottom:1px solid var(--gray-100);color:var(--gray-800);vertical-align:top;max-width:220px;white-space:normal;word-break:break-word;}
+td:nth-child(1){width:36px;text-align:center;white-space:nowrap;}
+td:nth-child(2){min-width:180px;}
+td:nth-child(3),td:nth-child(4),td:nth-child(5),td:nth-child(6){min-width:90px;}
+td:nth-child(7){width:40px;text-align:center;white-space:nowrap;}
+td:nth-child(8){min-width:140px;color:var(--success);font-size:11px;}
 
 /* Q LIST */
 .q-item{padding:14px 0;border-bottom:1px solid var(--gray-100);display:flex;align-items:flex-start;gap:12px;}
@@ -586,11 +588,11 @@ async function handlePDF(file) {
     const withExp = pdfData.filter(q=>q.explanation).length;
     alert_('p-alert', `✅ Found ${pdfData.length} questions (${withExp} with explanations)`, 'ok');
     document.getElementById('pdf-area').classList.add('has');
-    const samp = pdfData.slice(0,3);
     document.getElementById('pdf-preview').innerHTML = `
-      <div class="tbl-wrap" style="margin-top:12px;"><table>
+      <p style="font-size:12px;color:var(--gray-400);margin:12px 0 6px;">Preview (${pdfData.length} questions found — scroll to review):</p>
+      <div class="tbl-wrap" style="margin-top:4px;max-height:400px;overflow-y:auto;"><table>
         <thead><tr><th>#</th><th>Question</th><th>A</th><th>B</th><th>C</th><th>D</th><th>Ans</th><th>Explanation</th></tr></thead>
-        <tbody>${samp.map((q,i)=>`<tr><td>${i+1}</td><td>${q.question.substring(0,50)}</td><td>${(q.option_a||'').substring(0,12)}</td><td>${(q.option_b||'').substring(0,12)}</td><td>${(q.option_c||'').substring(0,12)}</td><td>${(q.option_d||'').substring(0,12)}</td><td><b>${q.correct_answer}</b></td><td style="color:var(--success);font-size:11px;">${q.explanation?q.explanation.substring(0,30)+'...':'—'}</td></tr>`).join('')}</tbody>
+        <tbody>${pdfData.map((q,i)=>`<tr><td>${i+1}</td><td>${q.question}</td><td>${q.option_a||''}</td><td>${q.option_b||''}</td><td>${q.option_c||''}</td><td>${q.option_d||''}</td><td><b>${q.correct_answer}</b></td><td>${q.explanation||'—'}</td></tr>`).join('')}</tbody>
       </table></div>`;
     document.getElementById('p-action').style.display = 'block';
   } catch(e) {
@@ -600,36 +602,68 @@ async function handlePDF(file) {
 
 function parsePDF(text) {
   const qs = [];
-  const lines = text.split('\n');
-  let block = '', inQ = false;
-  const blocks = [];
-  for (const line of lines) {
-    const t = line.trim();
-    if (!t) continue;
-    if (/^Q?\d{1,3}[.)]\s/.test(t)) {
-      if (block && inQ) blocks.push(block);
-      block = t; inQ = true;
-    } else if (inQ) block += ' ' + t;
+  const clean = s => (s || '').trim().replace(/\s+/g, ' ');
+
+  // Find all question start positions (supports 1. 1) Q1. Q1) 1: formats)
+  const qStartRe = /(?:^|\n)\s*(?:Q\s*)?\d{1,3}\s*[.):\-]\s+/g;
+  const matches = [];
+  let m;
+  while ((m = qStartRe.exec(text)) !== null) {
+    matches.push(m.index);
   }
-  if (block) blocks.push(block);
+
+  // Build blocks from one question start to the next
+  const blocks = [];
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i];
+    const end = i + 1 < matches.length ? matches[i + 1] : text.length;
+    blocks.push(text.slice(start, end).trim());
+  }
 
   for (const blk of blocks) {
     try {
-      const qm = blk.match(/^Q?\d{1,3}[.)]\s*(.+?)(?=[Aa][.)\/]\s)/s);
-      if (!qm) continue;
-      const am = blk.match(/[Aa][.)\/]\s*(.+?)(?=[Bb][.)\/]\s)/s);
-      const bm = blk.match(/[Bb][.)\/]\s*(.+?)(?=[Cc][.)\/]\s)/s);
-      const cm = blk.match(/[Cc][.)\/]\s*(.+?)(?=[Dd][.)\/]\s)/s);
-      const dm = blk.match(/[Dd][.)\/]\s*(.+?)(?=[Aa]ns|[Ee]xp|[Ss]ol|\d{1,3}[.)]|$)/s);
-      const anm = blk.match(/(?:[Aa]nswer|[Aa]ns)\s*[:\-]?\s*\(?([ABCDabcd])\)?/);
-      const exm = blk.match(/(?:[Ee]xplanation|[Ee]xp|[Ss]olution)\s*[:\-]?\s*(.+?)(?=\d{1,3}[.)]|$)/s);
-      if (!am||!bm||!cm||!dm) continue;
-      const c = s => s.trim().replace(/\s+/g,' ');
+      // Find position of first option (A. or A) or (A) etc.)
+      const firstOptIdx = blk.search(/\b[Aa]\s*[.):\-]\s+/);
+      if (firstOptIdx === -1) continue;
+
+      // Question text is between the number prefix and first option
+      const qNumRe = /^(?:Q\s*)?\d{1,3}\s*[.):\-]\s*/;
+      const qText = clean(blk.slice(0, firstOptIdx).replace(qNumRe, ''));
+      if (!qText || qText.length < 3) continue;
+
+      // Extract each option: match from its letter to the next letter marker or end
+      const getOpt = (letter, nextLetters) => {
+        const re = new RegExp(
+          '\\b' + letter + '\\s*[.):\\-]\\s*(.+?)(?=\\b[' + nextLetters + ']\\s*[.):\\-]|[Aa]ns|[Aa]nswer|[Cc]orrect|[Ee]xp|[Ss]ol|$)',
+          's'
+        );
+        return blk.match(re);
+      };
+
+      const am = getOpt('[Aa]', 'BCDbcd');
+      const bm = getOpt('[Bb]', 'CDcd');
+      const cm = getOpt('[Cc]', 'Dd');
+      const dm = blk.match(/\b[Dd]\s*[.):\-]\s*(.+?)(?=\b[Aa]ns|\b[Aa]nswer|\b[Cc]orrect|[Ee]xp|[Ss]ol|\d{1,3}\s*[.):\-]|$)/s);
+
+      if (!am || !bm || !cm || !dm) continue;
+
+      // Extract answer letter
+      const anm = blk.match(/(?:[Aa]nswer|[Aa]ns(?:wer)?|[Cc]orrect\s*(?:[Aa]ns(?:wer)?)?)\s*[:\-]?\s*\(?([ABCDabcd])\)?/)
+        || blk.match(/\(([ABCDabcd])\)\s*$/)
+        || blk.match(/\b([ABCDabcd])\s*$/);
+
+      // Extract explanation
+      const exm = blk.match(/(?:[Ee]xplanation|[Ee]xp|[Ss]olution|[Nn]ote)\s*[:\-]?\s*(.+?)(?=\d{1,3}\s*[.):\-]|$)/s);
+
       qs.push({
-        question: c(qm[1]), option_a: c(am[1]), option_b: c(bm[1]),
-        option_c: c(cm[1]), option_d: c(dm[1]),
+        question: qText,
+        option_a: clean(am[1]),
+        option_b: clean(bm[1]),
+        option_c: clean(cm[1]),
+        option_d: clean(dm[1]),
         correct_answer: anm ? anm[1].toUpperCase() : 'A',
-        explanation: exm ? c(exm[1]) : '', year: null
+        explanation: exm ? clean(exm[1]) : '',
+        year: null
       });
     } catch(e) { continue; }
   }
