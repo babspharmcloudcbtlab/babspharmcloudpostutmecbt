@@ -581,7 +581,15 @@ async function handlePDF(file) {
     for (let i = 1; i <= pdf.numPages; i++) {
       const pg = await pdf.getPage(i);
       const tc = await pg.getTextContent();
-      text += tc.items.map(x=>x.str).join(' ') + '\n';
+      // Preserve line breaks using Y-position changes
+      let lastY = null, pageText = '';
+      for (const item of tc.items) {
+        const y = item.transform ? Math.round(item.transform[5]) : null;
+        if (lastY !== null && y !== null && Math.abs(y - lastY) > 2) pageText += '\n';
+        pageText += item.str;
+        lastY = y;
+      }
+      text += pageText + '\n';
     }
     pdfData = parsePDF(text);
     if (pdfData.length === 0) return alert_('p-alert','Could not parse questions. Check PDF format.','err');
@@ -602,59 +610,73 @@ async function handlePDF(file) {
 
 function parsePDF(text) {
   const qs = [];
-  const clean = s => (s || '').trim().replace(/\s+/g, ' ');
+  const clean = s => (s || '').trim().replace(/[\s\n]+/g, ' ');
 
-  // Split into question blocks on "Q<number>." pattern
-  const blocks = text.split(/(?=Q\d{1,3}\.\s)/).filter(b => /^Q\d{1,3}\.\s/.test(b.trim()));
+  // Normalize: collapse runs of spaces but keep newlines meaningful
+  // Split into question blocks on Q1./Q2. etc at start of a line
+  const blocks = text.split(/(?=\nQ\d{1,3}\.)/).map(b=>b.trim()).filter(b => /^Q\d{1,3}\./.test(b));
 
   for (const blk of blocks) {
     try {
-      // --- Question text: from after "Q1. " up to first option line ---
-      // Options start with optional ✔ then A./B./C./D.
-      const qm = blk.match(/^Q\d{1,3}\.\s+([\s\S]+?)(?=(?:✔\s*)?[A-D]\.\s)/);
+      // --- Question text up to first option ---
+      const qm = blk.match(/^Q\d{1,3}\.\s*([\s\S]+?)(?=\n\s*(?:[✔✓]\s*)?[A-D]\s*\.)/);
       if (!qm) continue;
       const qText = clean(qm[1]);
       if (!qText || qText.length < 3) continue;
 
-      // --- Extract options (strip leading ✔ if present) ---
-      // Each option: optional ✔, then "A. text" up to next option or ■
-      const optRe = (letter, stop) =>
-        new RegExp(`(?:✔\\s*)?${letter}\\.\\s+([\\s\\S]+?)(?=(?:✔\\s*)?[${stop}]\\.|■|$)`);
-
-      const am = blk.match(optRe('A', 'BCD'));
-      const bm = blk.match(optRe('B', 'CD'));
-      const cm = blk.match(optRe('C', 'D'));
-      const dm = blk.match(/(?:✔\s*)?D\.\s+([\s\S]+?)(?=■|$)/);
+      // --- Extract options: each ends at next option marker or ■ ---
+      // Handles "A." with optional ✔/✓ before it
+      const getOpt = (letter, stopLetters) => {
+        const re = new RegExp(
+          '\\n\\s*(?:[✔✓]\\s*)?' + letter + '\\s*\\.\\s*([\\s\\S]+?)(?=\\n\\s*(?:[✔✓]\\s*)?[' + stopLetters + ']\\s*\\.|\\n\\s*■|$)'
+        );
+        return blk.match(re);
+      };
+      const am = getOpt('A', 'BCD');
+      const bm = getOpt('B', 'CD');
+      const cm = getOpt('C', 'D');
+      const dm = blk.match(/\n\s*(?:[✔✓]\s*)?D\s*\.\s*([\s\S]+?)(?=\n\s*■|$)/);
 
       if (!am || !bm || !cm || !dm) continue;
 
-      // --- Detect which option has the ✔ checkmark ---
+      // --- Correct answer: use "■ Correct Answer: <text>" line ---
+      // Match the answer text against option texts
       let correct = 'A';
-      if (/✔\s*A\./.test(blk)) correct = 'A';
-      else if (/✔\s*B\./.test(blk)) correct = 'B';
-      else if (/✔\s*C\./.test(blk)) correct = 'C';
-      else if (/✔\s*D\./.test(blk)) correct = 'D';
-      else {
-        // Fallback: ■ Correct Answer: <text> — match against option texts
-        const cam = blk.match(/■\s*Correct Answer:\s*(.+?)(?:\n|■|$)/);
-        if (cam) {
-          const ans = clean(cam[1]).toLowerCase();
-          const opts = [clean(am[1]), clean(bm[1]), clean(cm[1]), clean(dm[1])];
-          const idx = opts.findIndex(o => o.toLowerCase().startsWith(ans.substring(0, 10)));
-          if (idx >= 0) correct = ['A','B','C','D'][idx];
+      const cam = blk.match(/■\s*Correct Answer[:\s]+([^\n■]+)/);
+      if (cam) {
+        const ansText = clean(cam[1]).toLowerCase();
+        const opts = [clean(am[1]), clean(bm[1]), clean(cm[1]), clean(dm[1])];
+        // Try matching start of answer text against each option
+        for (let i = 0; i < opts.length; i++) {
+          const optLower = opts[i].toLowerCase();
+          const matchLen = Math.min(ansText.length, 15);
+          if (matchLen > 2 && optLower.includes(ansText.substring(0, matchLen))) {
+            correct = ['A','B','C','D'][i];
+            break;
+          }
         }
       }
+      // Also check for ✔/✓ marker directly before option letter as backup
+      if (correct === 'A') {
+        if (/\n\s*[✔✓]\s*D\s*\./.test(blk)) correct = 'D';
+        else if (/\n\s*[✔✓]\s*C\s*\./.test(blk)) correct = 'C';
+        else if (/\n\s*[✔✓]\s*B\s*\./.test(blk)) correct = 'B';
+        else if (/\n\s*[✔✓]\s*A\s*\./.test(blk)) correct = 'A';
+      }
 
-      // --- Extract explanation (second ■ line, after Correct Answer) ---
-      const expLines = blk.match(/■\s*Correct Answer:.*?\n([\s\S]+?)(?=Q\d{1,3}\.|$)/);
-      const explanation = expLines ? clean(expLines[1].replace(/^■\s*/, '')) : '';
+      // --- Explanation: text after "■ Correct Answer" line ---
+      const expM = blk.match(/■\s*Correct Answer[^\n]*\n([\s\S]+?)(?=\nQ\d{1,3}\.|$)/);
+      const explanation = expM ? clean(expM[1].replace(/^\s*■\s*/, '')) : '';
+
+      // Clean option text (remove any leading ✔✓ that slipped in)
+      const stripMark = s => clean(s).replace(/^[✔✓]\s*/, '');
 
       qs.push({
         question: qText,
-        option_a: clean(am[1]),
-        option_b: clean(bm[1]),
-        option_c: clean(cm[1]),
-        option_d: clean(dm[1]),
+        option_a: stripMark(am[1]),
+        option_b: stripMark(bm[1]),
+        option_c: stripMark(cm[1]),
+        option_d: stripMark(dm[1]),
         correct_answer: correct,
         explanation: explanation,
         year: null
@@ -663,6 +685,7 @@ function parsePDF(text) {
   }
   return qs;
 }
+
 
 document.getElementById('p-btn').onclick = async function() {
   const subj = document.getElementById('p-subj').value;
