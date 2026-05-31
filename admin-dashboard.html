@@ -418,6 +418,27 @@
 
     </div>
 
+    <!-- WHATSAPP SETTINGS -->
+    <div class="panel" style="margin-top:20px;">
+      <div class="panel-header"><h3>📱 WhatsApp Contact Settings</h3></div>
+      <p style="font-size:13px;color:#8b92a9;margin-bottom:14px;">Students will see a WhatsApp button on the payments page to contact you for their activation key.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+        <div style="flex:1;min-width:200px;">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#555;display:block;margin-bottom:6px;">WhatsApp Number (with country code)</label>
+          <input type="tel" id="wa-input" placeholder="e.g. 2348012345678" style="width:100%;border:2px solid #dde3f5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;" onfocus="this.style.borderColor='#1a3bbd'" onblur="this.style.borderColor='#dde3f5'">
+          <p style="font-size:11px;color:#8b92a9;margin-top:4px;">No + or spaces. Nigeria = 2348...</p>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:#555;display:block;margin-bottom:6px;">Default Message Students Will Send</label>
+          <input type="text" id="wa-msg" placeholder="Hello, I want to get my activation key" style="width:100%;border:2px solid #dde3f5;border-radius:8px;padding:10px 12px;font-size:14px;outline:none;" onfocus="this.style.borderColor='#1a3bbd'" onblur="this.style.borderColor='#dde3f5'">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px;align-items:center;flex-wrap:wrap;">
+        <button onclick="saveWhatsApp()" style="padding:10px 22px;background:#25d366;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">💾 Save Settings</button>
+        <div id="wa-status" style="display:none;padding:8px 14px;border-radius:8px;font-size:13px;"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -438,6 +459,7 @@
     loadStats();
     loadRecentStudents();
     loadRecentKeys();
+    loadWhatsAppSettings();
   }
 
   async function loadStats() {
@@ -539,6 +561,35 @@
   }
 
   init();
+
+  async function loadWhatsAppSettings() {
+    const { data } = await sb.from('settings').select('value').eq('key', 'whatsapp_number').single();
+    const { data: msgData } = await sb.from('settings').select('value').eq('key', 'whatsapp_message').single();
+    if (data) document.getElementById('wa-input').value = data.value;
+    if (msgData) document.getElementById('wa-msg').value = msgData.value;
+  }
+
+  async function saveWhatsApp() {
+    const number = document.getElementById('wa-input').value.trim().replace(/\D/g,'');
+    const message = document.getElementById('wa-msg').value.trim();
+    const status = document.getElementById('wa-status');
+    if (!number || number.length < 10) {
+      status.textContent = '⚠️ Please enter a valid WhatsApp number';
+      status.style.cssText = 'display:block;background:#fff0f0;color:#c0392b;border:1px solid #fcc;padding:8px 14px;border-radius:8px;font-size:13px;';
+      return;
+    }
+    try {
+      // Upsert whatsapp_number
+      await sb.from('settings').upsert({ key: 'whatsapp_number', value: number }, { onConflict: 'key' });
+      // Upsert whatsapp_message
+      await sb.from('settings').upsert({ key: 'whatsapp_message', value: message || 'Hello, I would like to get my activation key.' }, { onConflict: 'key' });
+      status.textContent = '✅ WhatsApp settings saved successfully!';
+      status.style.cssText = 'display:block;background:#e6f4ea;color:#276749;border:1px solid #b7dfc9;padding:8px 14px;border-radius:8px;font-size:13px;';
+    } catch(e) {
+      status.textContent = '❌ Error: ' + (e.message || e);
+      status.style.cssText = 'display:block;background:#fff0f0;color:#c0392b;border:1px solid #fcc;padding:8px 14px;border-radius:8px;font-size:13px;';
+    }
+  }
 </script>
 </body>
 </html>

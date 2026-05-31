@@ -181,12 +181,13 @@
     </div>
 
     <!-- CONTACT -->
-    <div class="contact-card">
-      <div class="contact-icon">📱</div>
+    <div class="contact-card" id="wa-card" style="cursor:pointer;" onclick="openWhatsApp()">
+      <div class="contact-icon">💬</div>
       <div class="contact-text">
-        <h4>Contact Admin for Payment</h4>
-        <p>Reach out via WhatsApp or email to get your activation key after payment.</p>
+        <h4>Contact Admin on WhatsApp</h4>
+        <p id="wa-card-text">Tap to message admin and get your activation key after payment.</p>
       </div>
+      <div style="margin-left:auto;background:#25d366;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;white-space:nowrap;">Open WhatsApp</div>
     </div>
   </div>
 </div>
@@ -222,6 +223,27 @@
   function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');document.body.style.overflow='';}
   async function handleLogout(){await sb.auth.signOut();window.location.href='index.html';}
   init();
+
+  let waNumber = '';
+  let waMessage = 'Hello, I would like to get my activation key.';
+
+  async function loadWhatsApp() {
+    const { data: numData } = await sb.from('settings').select('value').eq('key', 'whatsapp_number').single();
+    const { data: msgData } = await sb.from('settings').select('value').eq('key', 'whatsapp_message').single();
+    if (numData) waNumber = numData.value;
+    if (msgData) waMessage = msgData.value;
+    if (!waNumber) {
+      document.getElementById('wa-card-text').textContent = 'Contact admin to get your activation key after payment.';
+    }
+  }
+
+  function openWhatsApp() {
+    if (!waNumber) return alert('Admin WhatsApp number not set yet. Please contact your admin directly.');
+    const msg = encodeURIComponent(waMessage);
+    window.open('https://wa.me/' + waNumber + '?text=' + msg, '_blank');
+  }
+
+  loadWhatsApp();
 </script>
 </body>
 </html>

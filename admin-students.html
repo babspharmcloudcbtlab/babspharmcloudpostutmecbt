@@ -252,56 +252,45 @@
 
   async function loadStudents(){
     try{
-      // Get activated students via activation_keys
+      // Get profiles (students who registered)
+      const{data:profiles}=await sb.from('profiles').select('*').order('created_at',{ascending:false});
+
+      // Get activation keys map (used_by -> key info)
       const{data:keys}=await sb.from('activation_keys').select('used_by,used_at,key').not('used_by','is',null);
+      const keysMap={};
+      (keys||[]).forEach(k=>{keysMap[k.used_by]=k;});
 
-      // Get all results to compute scores
+      // Get all results
       const{data:results}=await sb.from('results').select('user_id,score,total,subject_id,created_at,subjects(name)');
-
-      // Build results map
       studentResults={};
       (results||[]).forEach(r=>{
         if(!studentResults[r.user_id])studentResults[r.user_id]=[];
         studentResults[r.user_id].push(r);
       });
 
-      // Get total exams count
       const totalExams=(results||[]).length;
       document.getElementById('stat-exams').textContent=totalExams;
 
-      // Since we can't list all auth users from client side,
-      // we use activation keys (activated students) + results (students who took exams)
-      const activatedIds=new Set((keys||[]).map(k=>k.used_by));
-
-      // Build student list from keys
-      allStudents=(keys||[]).map(k=>({
-        id:k.used_by,
-        key:k.key,
-        used_at:k.used_at,
-        is_activated:true,
-        results:studentResults[k.used_by]||[]
+      // Build student list from profiles
+      allStudents=(profiles||[]).map(p=>({
+        id:p.id,
+        full_name:p.full_name||'Unknown',
+        email:p.email||'—',
+        university:p.university||'—',
+        is_activated:p.is_activated||false,
+        key:keysMap[p.id]?.key||null,
+        used_at:keysMap[p.id]?.used_at||p.created_at,
+        results:studentResults[p.id]||[]
       }));
 
-      // Also add students who took exams but may not have activated
-      (results||[]).forEach(r=>{
-        if(!activatedIds.has(r.user_id)){
-          allStudents.push({
-            id:r.user_id,
-            is_activated:false,
-            results:studentResults[r.user_id]||[]
-          });
-          activatedIds.add(r.user_id);
-        }
-      });
-
-      // Update stats
       document.getElementById('stat-total').textContent=allStudents.length;
       document.getElementById('stat-activated').textContent=allStudents.filter(s=>s.is_activated).length;
       document.getElementById('stat-free').textContent=allStudents.filter(s=>!s.is_activated).length;
 
       renderStudents(allStudents);
     }catch(e){
-      document.getElementById('students-container').innerHTML='<div class="empty-state"><div class="empty-icon">❌</div>Failed to load students</div>';
+      console.log(e);
+      document.getElementById('students-container').innerHTML='<div class="empty-state"><div class="empty-icon">❌</div>Failed to load students: '+e.message+'</div>';
     }
   }
 
@@ -334,17 +323,19 @@
       const avgPct=totalPossible>0?Math.round((totalScore/totalPossible)*100):0;
       const initials=`S${i+1}`;
 
+      const nameInitials=(s.full_name||'S').split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
       return `
         <tr>
           <td>
             <div class="student-cell">
-              <div class="avatar">${initials}</div>
+              <div class="avatar">${nameInitials}</div>
               <div>
-                <div class="student-name">Student ${i+1}</div>
-                <div class="student-email">${s.is_activated?'Key: '+s.key:'No activation key'}</div>
+                <div class="student-name">${s.full_name||'Unknown Student'}</div>
+                <div class="student-email">${s.email||'—'}</div>
               </div>
             </div>
           </td>
+          <td><span class="uni-badge ${(s.university||'').toLowerCase()}">${s.university||'—'}</span></td>
           <td><span class="status-badge ${s.is_activated?'activated':'free'}">${s.is_activated?'✅ Activated':'⏳ Free'}</span></td>
           <td>${results.length} exam${results.length!==1?'s':''}</td>
           <td>
@@ -357,7 +348,7 @@
           </td>
           <td>${s.used_at?new Date(s.used_at).toLocaleDateString():'--'}</td>
           <td>
-            ${results.length>0?`<button onclick="viewResults('${s.id}','Student ${i+1}')" style="padding:6px 14px;background:rgba(26,59,189,0.08);color:var(--blue);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">View Results</button>`:'--'}
+            ${results.length>0?`<button onclick="viewResults('${s.id}','${s.full_name||'Student'}')" style="padding:6px 14px;background:rgba(26,59,189,0.08);color:var(--blue);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">View Results</button>`:'--'}
           </td>
         </tr>
       `;

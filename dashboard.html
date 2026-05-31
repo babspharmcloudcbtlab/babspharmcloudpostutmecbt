@@ -1008,6 +1008,12 @@
 
       await sb.auth.updateUser({ data: { is_activated: true } });
 
+      // Update profiles table so admin can see activation status
+      await sb.from('profiles').upsert({
+        id: currentUser.id,
+        is_activated: true
+      }, { onConflict: 'id' });
+
       alertEl.textContent = '🎉 Activated! You now have full access.';
       alertEl.className = 'modal-alert show success';
       document.getElementById('activation-banner').style.display = 'none';
