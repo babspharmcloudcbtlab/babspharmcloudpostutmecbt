@@ -166,7 +166,7 @@
           <div class="plan-feature">✅ Unlimited exams</div>
           <div class="plan-feature">✅ Weekly tests & leaderboard</div>
         </div>
-        <button class="plan-btn" onclick="window.location.href='dashboard.html'">Get Activation Key →</button>
+        <button class="plan-btn" onclick="contactAdminWhatsApp()">💬 Get Activation Key →</button>
       </div>
     </div>
 
@@ -198,12 +198,17 @@
   const{createClient}=supabase;
   const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
+  let currentStudentName='';
+  let currentStudentUni='';
+
   async function init(){
     const{data:{session}}=await sb.auth.getSession();
     if(!session){window.location.href='index.html';return;}
     const meta=session.user.user_metadata;
     const name=meta.full_name||'Student';
     const uni=meta.university||'OAU';
+    currentStudentName=name;
+    currentStudentUni=uni;
     const isActivated=meta.is_activated||false;
     document.getElementById('avatar').textContent=name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
     document.getElementById('uname').textContent=name.split(' ')[0];
@@ -238,8 +243,14 @@
   }
 
   function openWhatsApp() {
+    contactAdminWhatsApp();
+  }
+
+  function contactAdminWhatsApp() {
     if (!waNumber) return alert('Admin WhatsApp number not set yet. Please contact your admin directly.');
-    const msg = encodeURIComponent(waMessage);
+    const name = currentStudentName || 'Student';
+    const uni = currentStudentUni || '';
+    const msg = encodeURIComponent(waMessage + '\n\nName: ' + name + '\nUniversity: ' + uni + '\nAmount: ₦900');
     window.open('https://wa.me/' + waNumber + '?text=' + msg, '_blank');
   }
 
