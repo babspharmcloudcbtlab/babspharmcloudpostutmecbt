@@ -584,6 +584,10 @@ async function handlePDF(file) {
       // Join all text items with a space — keep it simple and flat
       text += tc.items.map(x => x.str).join(' ') + ' ';
     }
+    // DEBUG: show raw text in console
+    console.log('=== RAW PDF TEXT (first 3000 chars) ===');
+    console.log(JSON.stringify(text.substring(0, 3000)));
+    console.log('=== END RAW ===');
     pdfData = parsePDF(text);
     if (pdfData.length === 0) return alert_('p-alert','Could not parse questions. Check PDF format.','err');
     const withExp = pdfData.filter(q=>q.explanation).length;
