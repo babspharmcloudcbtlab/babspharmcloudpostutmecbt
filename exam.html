@@ -791,6 +791,41 @@
   .rs-num.wrong { color: var(--error); }
   .rs-num.skipped { color: var(--gray-400); }
 
+  /* CORRECTION STYLES */
+  .correction-item {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    border-left: 4px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .correction-item.correct { border-left-color: #38a169; }
+  .correction-item.wrong { border-left-color: #e53e3e; }
+  .correction-item.skipped { border-left-color: #d97706; }
+  .correction-qnum {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: #8b92a9; margin-bottom: 6px;
+  }
+  .correction-q {
+    font-size: 13px; font-weight: 600; color: #1a1a2e;
+    margin-bottom: 10px; line-height: 1.5;
+  }
+  .correction-options { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  .correction-opt {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 8px; font-size: 12px;
+    background: #f8f9fa;
+  }
+  .correction-opt.student-correct { background: #e6f4ea; color: #276749; font-weight: 700; }
+  .correction-opt.student-wrong { background: #fff0f0; color: #c0392b; font-weight: 700; }
+  .correction-opt.real-correct { background: #e6f4ea; color: #276749; font-weight: 700; }
+  .correction-exp {
+    background: #f0f4ff; border-radius: 8px; padding: 10px 12px;
+    font-size: 12px; color: #444; line-height: 1.5; margin-top: 8px;
+  }
+  .correction-exp span { font-weight: 700; color: #1a3bbd; }
+
   .result-actions {
     display: flex;
     gap: 12px;
@@ -1011,21 +1046,19 @@
       <div class="settings-row">
         <div class="setting-item">
           <label>Number of Questions</label>
-          <select id="q-count">
-            <option value="10">10 Questions</option>
-            <option value="20" selected>20 Questions</option>
-            <option value="40">40 Questions</option>
-            <option value="60">60 Questions</option>
-          </select>
+          <input type="number" id="q-count" value="20" min="1" max="200"
+            style="width:100%;border:2px solid var(--gray-200);border-radius:10px;padding:10px 14px;font-size:14px;outline:none;font-family:inherit;"
+            onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--gray-200)'"
+            placeholder="e.g. 20">
+          <p style="font-size:11px;color:#8b92a9;margin-top:4px;">Enter any number (1–200)</p>
         </div>
         <div class="setting-item">
-          <label>Time Limit</label>
-          <select id="time-limit">
-            <option value="600">10 Minutes</option>
-            <option value="1200" selected>20 Minutes</option>
-            <option value="1800">30 Minutes</option>
-            <option value="3600">60 Minutes</option>
-          </select>
+          <label>Time (Minutes)</label>
+          <input type="number" id="time-limit-min" value="20" min="1" max="180"
+            style="width:100%;border:2px solid var(--gray-200);border-radius:10px;padding:10px 14px;font-size:14px;outline:none;font-family:inherit;"
+            onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--gray-200)'"
+            placeholder="e.g. 30">
+          <p style="font-size:11px;color:#8b92a9;margin-top:4px;">Enter minutes (1–180)</p>
         </div>
         <div class="setting-item">
           <label>Mode</label>
@@ -1145,6 +1178,12 @@
       <button class="ra-btn outline" onclick="retryExam()">🔄 Try Again</button>
       <button class="ra-btn primary" onclick="window.location.href='dashboard.html'">🏠 Dashboard</button>
     </div>
+  </div>
+
+  <!-- CORRECTION SECTION -->
+  <div style="width:100%;max-width:680px;margin:24px auto 0;">
+    <h3 style="font-size:16px;font-weight:800;color:#1a1a2e;margin-bottom:14px;text-align:center;">📋 Question Review</h3>
+    <div id="correction-list"></div>
   </div>
 </div>
 
@@ -1277,9 +1316,10 @@
   async function startExam() {
     if (!selectedSubject) return;
 
-    const qCount = parseInt(document.getElementById('q-count').value);
+    const qCount = Math.max(1, parseInt(document.getElementById('q-count').value) || 20);
     examMode = document.getElementById('exam-mode').value;
-    timeLeft = parseInt(document.getElementById('time-limit').value);
+    const minutes = Math.max(1, parseInt(document.getElementById('time-limit-min').value) || 20);
+    timeLeft = minutes * 60;
 
     const limit = isActivated ? qCount : 3;
 
@@ -1535,7 +1575,7 @@
         subject_id: selectedSubject.id,
         score: correct,
         total: total,
-        time_taken: parseInt(document.getElementById('time-limit')?.value || 1200) - timeLeft
+        time_taken: (Math.max(1, parseInt(document.getElementById('time-limit-min')?.value) || 20) * 60) - timeLeft
       });
     } catch(e) { console.log('Result save error:', e); }
 
@@ -1547,6 +1587,9 @@
     document.getElementById('exam-screen').style.display = 'none';
     const rs = document.getElementById('result-screen');
     rs.style.display = 'flex';
+
+    // Render corrections
+    renderCorrections();
 
     // Emoji & title
     let emoji = '😢', title = 'Keep Practising!';
@@ -1578,6 +1621,42 @@
         if (current >= score) clearInterval(interval);
       }, 16);
     }, 300);
+  }
+
+  function renderCorrections() {
+    const list = document.getElementById('correction-list');
+    if (!list || !questions || !answers) return;
+    const letters = ['A','B','C','D'];
+    const optKeys = ['option_a','option_b','option_c','option_d'];
+    list.innerHTML = questions.map((q, i) => {
+      const userAns = answers[i]; // answers is 0-indexed
+      const correctAns = q.correct_answer;
+      const isCorrect = userAns === correctAns;
+      const isSkipped = !userAns;
+      const status = isSkipped ? 'skipped' : isCorrect ? 'correct' : 'wrong';
+      const statusIcon = isSkipped ? '⏭️ Skipped' : isCorrect ? '✅ Correct' : '❌ Wrong';
+
+      const optsHtml = letters.map((letter, idx) => {
+        const optText = q[optKeys[idx]] || '';
+        let cls = 'correction-opt';
+        if (letter === correctAns) cls += ' real-correct';
+        else if (letter === userAns && !isCorrect) cls += ' student-wrong';
+        const icon = letter === correctAns ? '✅' : (letter === userAns && !isCorrect) ? '❌' : '○';
+        return `<div class="${cls}"><span>${icon}</span><span><b>${letter}.</b> ${optText}</span></div>`;
+      }).join('');
+
+      const expHtml = q.explanation
+        ? `<div class="correction-exp"><span>💡 Explanation:</span> ${q.explanation}</div>`
+        : '';
+
+      return `
+        <div class="correction-item ${status}">
+          <div class="correction-qnum">Question ${i+1} &nbsp;|&nbsp; ${statusIcon}</div>
+          <div class="correction-q">${q.question}</div>
+          <div class="correction-options">${optsHtml}</div>
+          ${expHtml}
+        </div>`;
+    }).join('');
   }
 
   function retryExam() {
