@@ -605,60 +605,74 @@ function parsePDF(text) {
   const qs = [];
   const clean = s => (s || '').trim().replace(/\s+/g, ' ');
 
-  // Split text into question blocks using Q1. Q2. ... pattern
-  // Works on flat single-line text from pdf.js
-  const parts = text.split(/(?=Q\d{1,3}\.)/).filter(p => /^Q\d{1,3}\./.test(p.trim()));
+  // The ■ character often extracts as "n" in pdf.js — normalise both
+  // Also ✔ may extract as a weird char or be missing entirely
+  // Strategy: split on Q<n>. and use "Correct Answer:" as the key landmark
+
+  const parts = text.split(/(?=\bQ\d{1,3}\.\s)/).filter(p => /^Q\d{1,3}\.\s/.test(p.trim()));
 
   for (const blk of parts) {
     try {
-      // Question text: after "Q1." up to first option "A."
-      // Options may be preceded by ✔ or ✓
-      const qm = blk.match(/^Q\d{1,3}\.\s*(.+?)(?=\s(?:[✔✓]\s*)?A\.\s)/);
+      // Question: from after "Q1." to first option "A."
+      const qm = blk.match(/^Q\d{1,3}\.\s*(.+?)(?=\s[A-D]\.\s)/);
       if (!qm) continue;
       const qText = clean(qm[1]);
       if (!qText || qText.length < 3) continue;
 
-      // Extract each option — stop at next option letter or ■
-      const am = blk.match(/(?:[✔✓]\s*)?A\.\s+(.+?)(?=\s(?:[✔✓]\s*)?B\.\s|\s■)/);
-      const bm = blk.match(/(?:[✔✓]\s*)?B\.\s+(.+?)(?=\s(?:[✔✓]\s*)?C\.\s|\s■)/);
-      const cm = blk.match(/(?:[✔✓]\s*)?C\.\s+(.+?)(?=\s(?:[✔✓]\s*)?D\.\s|\s■)/);
-      const dm = blk.match(/(?:[✔✓]\s*)?D\.\s+(.+?)(?=\s■|$)/);
+      // Options: stop each at next letter or "Correct Answer"
+      const am = blk.match(/\bA\.\s+(.+?)(?=\s[B-D]\.\s|\bCorrect Answer|\bAns\b)/);
+      const bm = blk.match(/\bB\.\s+(.+?)(?=\s[CD]\.\s|\bCorrect Answer|\bAns\b)/);
+      const cm = blk.match(/\bC\.\s+(.+?)(?=\sD\.\s|\bCorrect Answer|\bAns\b)/);
+      const dm = blk.match(/\bD\.\s+(.+?)(?=\bCorrect Answer|\bAns\b|Q\d{1,3}\.|$)/);
 
       if (!am || !bm || !cm || !dm) continue;
 
-      // Correct answer: match "■ Correct Answer: <text>" against options
+      // Correct Answer: look for "Correct Answer: <text>" or "Correct Answer: <letter>"
       let correct = 'A';
-      const cam = blk.match(/■\s*Correct Answer[:\s]+([^■]+?)(?=\s■|$)/);
+      const cam = blk.match(/Correct Answer[:\s]+([^\n]+?)(?=\s{2,}|Q\d{1,3}\.|$)/);
       if (cam) {
-        const ansText = clean(cam[1]).toLowerCase();
-        const opts = [clean(am[1]), clean(bm[1]), clean(cm[1]), clean(dm[1])];
-        for (let i = 0; i < opts.length; i++) {
-          const key = ansText.substring(0, Math.min(12, ansText.length));
-          if (key.length > 2 && opts[i].toLowerCase().includes(key)) {
-            correct = ['A','B','C','D'][i];
-            break;
+        const ansRaw = clean(cam[1]);
+        // Check if it's just a letter like "A" or "B"
+        const letterOnly = ansRaw.match(/^([A-D])$/);
+        if (letterOnly) {
+          correct = letterOnly[1];
+        } else {
+          // Match answer text against options
+          const ansLow = ansRaw.toLowerCase();
+          const opts = [clean(am[1]), clean(bm[1]), clean(cm[1]), clean(dm[1])];
+          let best = -1, bestLen = 0;
+          for (let i = 0; i < opts.length; i++) {
+            const optLow = opts[i].toLowerCase();
+            // Find longest common prefix
+            let matchLen = 0;
+            for (let k = 0; k < Math.min(ansLow.length, optLow.length); k++) {
+              if (ansLow[k] === optLow[k]) matchLen++;
+              else break;
+            }
+            if (matchLen > bestLen && matchLen >= 3) {
+              bestLen = matchLen;
+              best = i;
+            }
           }
-        }
-        // If still A but A isn't actually the answer, try single letter match
-        if (correct === 'A' && !opts[0].toLowerCase().includes(ansText.substring(0,5))) {
-          const letterM = blk.match(/■\s*Correct Answer[:\s]+([A-D])(?:\s|$)/);
-          if (letterM) correct = letterM[1];
+          if (best >= 0) correct = ['A','B','C','D'][best];
         }
       }
 
-      // Explanation: second ■ block
-      const expM = blk.match(/■\s*Correct Answer[^■]*■\s*(.+?)(?=Q\d{1,3}\.|$)/);
-      const explanation = expM ? clean(expM[1]) : '';
+      // Explanation: text after "Correct Answer: <answertext>" 
+      // Usually follows the answer on same line or next sentence
+      let explanation = '';
+      const expM = blk.match(/Correct Answer[:\s]+[^\n]+?(?:[.!?])\s+(.+?)(?=Q\d{1,3}\.|$)/);
+      if (expM) explanation = clean(expM[1]);
 
-      // Strip ✔✓ from option text if it slipped in
-      const strip = s => clean(s).replace(/^[✔✓]\s*/, '');
+      // Strip trailing "n" artifacts (broken ■ chars) from options
+      const stripN = s => clean(s).replace(/\s+n\s*$/, '').replace(/\s+n\s+/g, ' ');
 
       qs.push({
         question: qText,
-        option_a: strip(am[1]),
-        option_b: strip(bm[1]),
-        option_c: strip(cm[1]),
-        option_d: strip(dm[1]),
+        option_a: stripN(am[1]),
+        option_b: stripN(bm[1]),
+        option_c: stripN(cm[1]),
+        option_d: stripN(dm[1]),
         correct_answer: correct,
         explanation: explanation,
         year: null
