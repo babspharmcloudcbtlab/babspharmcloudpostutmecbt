@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcards</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--blue:#1a3bbd;--gold:#f5a623;--success:#38a169;--error:#e53e3e;--gray-50:#f8f9fc;--gray-100:#f0f2f8;--gray-200:#e2e8f0;--gray-400:#94a3b8;--gray-600:#64748b;--gray-800:#1e293b;}
+body{font-family:'Sora',sans-serif;background:var(--gray-50);min-height:100vh;}
+
+/* NAV */
+.top-nav{background:#fff;border-bottom:1px solid var(--gray-100);padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.back-btn{background:none;border:none;font-size:20px;cursor:pointer;padding:4px;}
+.nav-title{font-size:17px;font-weight:800;color:var(--gray-800);}
+.nav-badge{margin-left:auto;background:var(--gray-100);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--gray-600);font-weight:600;}
+
+/* SUBJECT SELECT */
+.setup-screen{padding:20px;max-width:500px;margin:0 auto;}
+.setup-title{font-size:22px;font-weight:800;color:var(--gray-800);margin-bottom:6px;}
+.setup-sub{font-size:13px;color:var(--gray-400);margin-bottom:24px;}
+.subject-grid{display:flex;flex-direction:column;gap:10px;}
+.subj-card{background:#fff;border:2px solid var(--gray-200);border-radius:14px;padding:16px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .2s;}
+.subj-card:hover,.subj-card.active{border-color:var(--blue);background:rgba(26,59,189,0.04);}
+.subj-icon{font-size:28px;}
+.subj-name{font-size:15px;font-weight:700;color:var(--gray-800);}
+.subj-count{font-size:12px;color:var(--gray-400);}
+.start-btn{width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:20px;font-family:'Sora',sans-serif;}
+.start-btn:disabled{opacity:.4;cursor:not-allowed;}
+.free-notice{background:#fff8e1;border:1px solid #f5a623;border-radius:10px;padding:12px 16px;font-size:13px;color:#92400e;margin-bottom:16px;}
+
+/* FLASHCARD SCREEN */
+.flashcard-screen{display:none;padding:20px;max-width:500px;margin:0 auto;}
+.progress-bar{height:6px;background:var(--gray-200);border-radius:3px;margin-bottom:20px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--blue);border-radius:3px;transition:width .3s;}
+.progress-text{font-size:12px;color:var(--gray-400);text-align:center;margin-bottom:16px;}
+
+/* CARD FLIP */
+.card-container{perspective:1000px;margin-bottom:24px;cursor:pointer;}
+.card-inner{position:relative;width:100%;min-height:280px;transition:transform 0.5s;transform-style:preserve-3d;}
+.card-container.flipped .card-inner{transform:rotateY(180deg);}
+.card-front,.card-back{position:absolute;width:100%;min-height:280px;backface-visibility:hidden;border-radius:20px;padding:28px;display:flex;flex-direction:column;justify-content:center;}
+.card-front{background:linear-gradient(135deg,#1a3bbd,#2d52e0);color:#fff;}
+.card-back{background:#fff;border:2px solid var(--gray-200);transform:rotateY(180deg);}
+.card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;opacity:0.7;margin-bottom:12px;}
+.card-front .card-label{color:rgba(255,255,255,0.7);}
+.card-back .card-label{color:var(--gray-400);}
+.card-question{font-size:16px;font-weight:700;line-height:1.5;color:#fff;}
+.card-answer{font-size:15px;font-weight:700;color:var(--blue);margin-bottom:10px;}
+.card-options{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.card-opt{font-size:13px;color:var(--gray-600);padding:6px 10px;background:var(--gray-50);border-radius:8px;}
+.card-opt.correct{background:#e6f4ea;color:var(--success);font-weight:700;}
+.card-exp{font-size:12px;color:var(--gray-600);background:var(--gray-50);border-radius:8px;padding:10px;line-height:1.5;}
+.card-exp span{font-weight:700;color:var(--blue);}
+.tap-hint{font-size:12px;opacity:.6;text-align:center;margin-top:8px;}
+
+.card-actions{display:flex;gap:10px;}
+.action-btn{flex:1;padding:14px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;}
+.btn-wrong{background:#fff0f0;color:var(--error);}
+.btn-correct{background:#e6f4ea;color:var(--success);}
+.btn-next{background:var(--blue);color:#fff;}
+
+.score-row{display:flex;justify-content:center;gap:20px;margin-top:16px;}
+.score-chip{text-align:center;background:#fff;border-radius:12px;padding:10px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.score-chip .num{font-size:20px;font-weight:800;}
+.score-chip .lbl{font-size:11px;color:var(--gray-400);}
+.chip-correct .num{color:var(--success);}
+.chip-wrong .num{color:var(--error);}
+
+/* DONE SCREEN */
+.done-screen{display:none;padding:40px 20px;text-align:center;max-width:500px;margin:0 auto;}
+.done-emoji{font-size:64px;margin-bottom:16px;}
+.done-title{font-size:24px;font-weight:800;color:var(--gray-800);margin-bottom:8px;}
+.done-sub{font-size:14px;color:var(--gray-400);margin-bottom:28px;}
+.done-stats{display:flex;gap:12px;justify-content:center;margin-bottom:28px;}
+.done-stat{background:#fff;border-radius:14px;padding:16px 24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.done-stat .n{font-size:28px;font-weight:800;}
+.done-stat .l{font-size:12px;color:var(--gray-400);}
+.green .n{color:var(--success);}
+.red .n{color:var(--error);}
+.done-btn{width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:10px;font-family:'Sora',sans-serif;}
+.done-btn.outline{background:#fff;color:var(--blue);border:2px solid var(--blue);}
+</style>
+</head>
+<body>
+
+<div class="top-nav">
+  <button class="back-btn" onclick="window.location.href='dashboard.html'">←</button>
+  <div class="nav-title">🃏 Flashcards</div>
+  <div class="nav-badge" id="nav-badge"></div>
+</div>
+
+<!-- SETUP SCREEN -->
+<div class="setup-screen" id="setup-screen">
+  <div class="setup-title">Choose a Subject</div>
+  <div class="setup-sub">Flip through questions and test your memory</div>
+  <div id="free-notice" class="free-notice" style="display:none;">⚡ Free preview: 3 flashcards per subject. <a href="payments.html" style="color:var(--blue);font-weight:700;">Activate for full access →</a></div>
+  <div class="subject-grid" id="subject-grid"><div style="text-align:center;padding:40px;color:var(--gray-400);">Loading subjects...</div></div>
+  <button class="start-btn" id="start-btn" disabled onclick="startFlashcards()">Start Flashcards →</button>
+</div>
+
+<!-- FLASHCARD SCREEN -->
+<div class="flashcard-screen" id="flashcard-screen">
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  <div class="progress-text" id="progress-text">1 / 10</div>
+
+  <div class="card-container" id="card-container" onclick="flipCard()">
+    <div class="card-inner" id="card-inner">
+      <div class="card-front">
+        <div class="card-label">Question — tap to reveal answer</div>
+        <div class="card-question" id="card-question">Loading...</div>
+        <div class="tap-hint">👆 Tap card to flip</div>
+      </div>
+      <div class="card-back">
+        <div class="card-label">Answer</div>
+        <div class="card-answer" id="card-answer"></div>
+        <div class="card-options" id="card-options"></div>
+        <div class="card-exp" id="card-exp" style="display:none;"><span>💡 Explanation:</span> <span id="card-exp-text"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="score-row">
+    <div class="score-chip chip-correct"><div class="num" id="score-correct">0</div><div class="lbl">Got it</div></div>
+    <div class="score-chip chip-wrong"><div class="num" id="score-wrong">0</div><div class="lbl">Missed</div></div>
+  </div>
+
+  <div class="card-actions" style="margin-top:16px;" id="card-actions-bottom">
+    <button class="action-btn btn-wrong" onclick="markCard(false)">❌ Missed</button>
+    <button class="action-btn btn-correct" onclick="markCard(true)">✅ Got it</button>
+  </div>
+  <button class="action-btn btn-next" style="width:100%;margin-top:10px;" onclick="nextCard()">Next →</button>
+</div>
+
+<!-- DONE SCREEN -->
+<div class="done-screen" id="done-screen">
+  <div class="done-emoji" id="done-emoji">🎉</div>
+  <div class="done-title" id="done-title">Well Done!</div>
+  <div class="done-sub" id="done-sub">You completed all flashcards</div>
+  <div class="done-stats">
+    <div class="done-stat green"><div class="n" id="done-correct">0</div><div class="l">Got it</div></div>
+    <div class="done-stat red"><div class="n" id="done-wrong">0</div><div class="l">Missed</div></div>
+  </div>
+  <button class="done-btn" onclick="restartCards()">🔄 Retry Missed Cards</button>
+  <button class="done-btn outline" onclick="window.location.href='dashboard.html'">🏠 Dashboard</button>
+</div>
+
+<script>
+const SUPABASE_URL='https://xdixrqlhctisthfdvzvn.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+let currentUser=null, isActivated=false;
+let cards=[], currentIdx=0, gotIt=0, missed=0;
+let selectedSubjectId=null, selectedSubjectName='';
+let missedCards=[];
+let isFlipped=false;
+
+async function init(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){window.location.href='index.html';return;}
+  currentUser=session.user;
+  isActivated=currentUser.user_metadata?.is_activated||false;
+  if(!isActivated) document.getElementById('free-notice').style.display='block';
+  loadSubjects();
+}
+
+async function loadSubjects(){
+  const uni=currentUser.user_metadata?.university||'OAU';
+  const{data}=await sb.from('subjects').select('*').eq('university',uni).order('name');
+  const grid=document.getElementById('subject-grid');
+  if(!data||!data.length){grid.innerHTML='<div style="text-align:center;padding:40px;color:var(--gray-400);">No subjects found</div>';return;}
+  grid.innerHTML=data.map(s=>`
+    <div class="subj-card" id="sc-${s.id}" onclick="selectSubject('${s.id}','${s.name}','${s.icon||'📚'}')">
+      <div class="subj-icon">${s.icon||'📚'}</div>
+      <div><div class="subj-name">${s.name}</div><div class="subj-count">${s.question_count||0} questions</div></div>
+    </div>`).join('');
+}
+
+function selectSubject(id,name,icon){
+  selectedSubjectId=id; selectedSubjectName=name;
+  document.querySelectorAll('.subj-card').forEach(c=>c.classList.remove('active'));
+  document.getElementById('sc-'+id)?.classList.add('active');
+  document.getElementById('start-btn').disabled=false;
+}
+
+async function startFlashcards(){
+  const limit=isActivated?200:3;
+  const{data}=await sb.from('questions').select('*').eq('subject_id',selectedSubjectId).limit(limit);
+  if(!data||!data.length){alert('No questions found for this subject.');return;}
+  cards=[...data];
+  currentIdx=0; gotIt=0; missed=0; missedCards=[];
+  document.getElementById('setup-screen').style.display='none';
+  document.getElementById('flashcard-screen').style.display='block';
+  document.getElementById('nav-badge').textContent=selectedSubjectName;
+  showCard();
+}
+
+function showCard(){
+  if(currentIdx>=cards.length){showDone();return;}
+  const q=cards[currentIdx];
+  const total=cards.length;
+  const pct=((currentIdx)/total)*100;
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('progress-text').textContent=`${currentIdx+1} / ${total}`;
+  document.getElementById('card-question').textContent=q.question;
+
+  // Answer
+  const ansKey='option_'+q.correct_answer.toLowerCase();
+  const ansText=q[ansKey]||'';
+  document.getElementById('card-answer').textContent=q.correct_answer+'. '+ansText;
+
+  // Options
+  const letters=['A','B','C','D'];
+  const keys=['option_a','option_b','option_c','option_d'];
+  document.getElementById('card-options').innerHTML=letters.map((l,i)=>`
+    <div class="card-opt ${l===q.correct_answer?'correct':''}">
+      ${l===q.correct_answer?'✅':''} ${l}. ${q[keys[i]]||''}
+    </div>`).join('');
+
+  // Explanation
+  if(q.explanation){
+    document.getElementById('card-exp').style.display='block';
+    document.getElementById('card-exp-text').textContent=q.explanation;
+  } else {
+    document.getElementById('card-exp').style.display='none';
+  }
+
+  // Reset flip
+  isFlipped=false;
+  document.getElementById('card-container').classList.remove('flipped');
+  document.getElementById('score-correct').textContent=gotIt;
+  document.getElementById('score-wrong').textContent=missed;
+}
+
+function flipCard(){
+  isFlipped=!isFlipped;
+  document.getElementById('card-container').classList.toggle('flipped',isFlipped);
+}
+
+function markCard(correct){
+  if(!isFlipped) flipCard();
+  if(correct) gotIt++;
+  else{missed++;missedCards.push(cards[currentIdx]);}
+  setTimeout(()=>{currentIdx++;showCard();},300);
+}
+
+function nextCard(){currentIdx++;showCard();}
+
+function showDone(){
+  document.getElementById('flashcard-screen').style.display='none';
+  document.getElementById('done-screen').style.display='block';
+  document.getElementById('done-correct').textContent=gotIt;
+  document.getElementById('done-wrong').textContent=missed;
+  const pct=cards.length>0?Math.round((gotIt/cards.length)*100):0;
+  document.getElementById('done-emoji').textContent=pct>=80?'🏆':pct>=60?'🎉':'💪';
+  document.getElementById('done-title').textContent=pct>=80?'Excellent!':pct>=60?'Well Done!':'Keep Practising!';
+  document.getElementById('done-sub').textContent=`${gotIt}/${cards.length} cards correct (${pct}%)`;
+}
+
+function restartCards(){
+  if(missedCards.length===0){cards=[...cards];} else {cards=[...missedCards];}
+  currentIdx=0;gotIt=0;missed=0;missedCards=[];
+  document.getElementById('done-screen').style.display='none';
+  document.getElementById('flashcard-screen').style.display='block';
+  showCard();
+}
+
+init();
+</script>
+</body>
+</html>

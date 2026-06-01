@@ -254,60 +254,30 @@
   .cd-sep { font-size: 16px; color: rgba(255,255,255,0.3); font-weight: 700; }
 
   /* ACTIVATION BANNER */
-  /* FREE TIER UPGRADE CARD */
-  .upgrade-card {
-    background: linear-gradient(135deg, #1a3bbd, #2d52e0);
-    border-radius: 16px; padding: 20px; margin-bottom: 20px;
-    color: white; position: relative; overflow: hidden;
+  .activation-banner {
+    background: linear-gradient(135deg, #fff8e1, #fffde7);
+    border: 1.5px solid #f5a623; border-radius: 14px;
+    padding: 14px 18px; display: flex; align-items: center;
+    gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
   }
-  .upgrade-card::after {
-    content: '🔒'; position: absolute; right: -10px; top: -10px;
-    font-size: 80px; opacity: 0.08;
-  }
-  .upgrade-badge {
-    display: inline-block; background: rgba(255,255,255,0.2);
-    color: white; font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 1px;
-    padding: 3px 10px; border-radius: 20px; margin-bottom: 10px;
-  }
-  .upgrade-title {
-    font-family: 'Sora', sans-serif; font-size: 17px;
-    font-weight: 800; margin-bottom: 6px;
-  }
-  .upgrade-desc { font-size: 13px; opacity: 0.85; line-height: 1.5; margin-bottom: 14px; }
-  .upgrade-features {
-    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
-  }
-  .upgrade-feature {
-    background: rgba(255,255,255,0.15); border-radius: 8px;
-    padding: 6px 12px; font-size: 12px; font-weight: 600;
-  }
-  .upgrade-price {
-    font-family: 'Sora', sans-serif; font-size: 22px;
-    font-weight: 800; margin-bottom: 14px;
-  }
-  .upgrade-price span { font-size: 13px; font-weight: 400; opacity: 0.8; }
-  .upgrade-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-  .upgrade-btn-primary {
-    flex: 1; padding: 12px 20px; background: var(--gold);
-    color: white; border: none; border-radius: 10px;
-    font-family: 'Sora', sans-serif; font-size: 14px;
-    font-weight: 700; cursor: pointer; text-align: center;
-    min-width: 140px;
-  }
-  .upgrade-btn-secondary {
-    padding: 12px 20px; background: rgba(255,255,255,0.15);
-    color: white; border: none; border-radius: 10px;
+
+  .ab-icon { font-size: 24px; flex-shrink: 0; }
+  .ab-text { flex: 1; min-width: 140px; }
+
+  .ab-text h4 {
     font-family: 'Sora', sans-serif; font-size: 13px;
-    font-weight: 600; cursor: pointer; white-space: nowrap;
+    font-weight: 700; color: #92400e; margin-bottom: 2px;
   }
-  /* keep old activate-btn for modal */
+
+  .ab-text p { font-size: 12px; color: #b45309; line-height: 1.4; }
+
   .activate-btn {
     background: var(--gold); color: white; border: none;
     padding: 9px 18px; border-radius: 9px; font-family: 'Sora', sans-serif;
     font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
     transition: all 0.2s; flex-shrink: 0;
   }
+
   .activate-btn:hover { background: #e09000; }
 
   /* SECTION HEADER */
@@ -609,6 +579,14 @@
       <div class="nav-icon">📅</div> Weekly Test
       <span class="nav-badge" style="background:var(--error)">NEW</span>
     </a>
+    <a class="nav-item" href="flashcards.html">
+      <div class="nav-icon">🃏</div> Flashcards
+      <span class="nav-badge" style="background:var(--blue)">NEW</span>
+    </a>
+    <a class="nav-item" href="leaderboard.html">
+      <div class="nav-icon">🏆</div> Leaderboard
+      <span class="nav-badge" style="background:var(--gold)">NEW</span>
+    </a>
     <a class="nav-item" href="past-questions.html">
       <div class="nav-icon">❓</div> Past Questions
     </a>
@@ -718,23 +696,13 @@
     </div>
 
     <!-- ACTIVATION BANNER -->
-    <!-- FREE TIER UPGRADE CARD -->
-    <div class="upgrade-card" id="activation-banner" style="display:none;">
-      <div class="upgrade-badge">⚡ Free Preview</div>
-      <div class="upgrade-title">Unlock Full Access 🚀</div>
-      <div class="upgrade-desc">You currently have access to only <b>3 questions per subject</b>. Upgrade to practice with all questions and boost your UTME score!</div>
-      <div class="upgrade-features">
-        <div class="upgrade-feature">✅ All Questions</div>
-        <div class="upgrade-feature">✅ All Subjects</div>
-        <div class="upgrade-feature">✅ Past Questions</div>
-        <div class="upgrade-feature">✅ Performance Tracking</div>
-        <div class="upgrade-feature">✅ Weekly Tests</div>
+    <div class="activation-banner" id="activation-banner" style="display:none;">
+      <div class="ab-icon">🔑</div>
+      <div class="ab-text">
+        <h4>Unlock Full Access</h4>
+        <p>You're on free preview — 3 questions per subject. Enter your activation key to unlock all questions.</p>
       </div>
-      <div class="upgrade-price">₦900 <span>/ month</span></div>
-      <div class="upgrade-actions">
-        <button class="upgrade-btn-primary" onclick="contactAdminWhatsApp()">💬 Get Activation Key</button>
-        <button class="upgrade-btn-secondary" onclick="showActivationModal()">🔑 I Have a Key</button>
-      </div>
+      <button class="activate-btn" onclick="showActivationModal()">Activate Now</button>
     </div>
 
     <!-- QUICK ACCESS -->
@@ -779,6 +747,18 @@
         <div class="qc-title">Payments</div>
         <div class="qc-desc">View your payment history.</div>
         <div class="qc-arrow">→</div>
+      </div>
+      <div class="quick-card" onclick="window.location.href='flashcards.html'">
+        <div class="quick-icon" style="background:#fff8e1;">🃏</div>
+        <div class="quick-title">Flashcards</div>
+        <div class="quick-desc">Flip through questions and test memory.</div>
+        <div class="quick-arrow">→</div>
+      </div>
+      <div class="quick-card" onclick="window.location.href='leaderboard.html'">
+        <div class="quick-icon" style="background:#fff0f0;">🏆</div>
+        <div class="quick-title">Leaderboard</div>
+        <div class="quick-desc">See how you rank against others.</div>
+        <div class="quick-arrow">→</div>
       </div>
       <div class="quick-card" onclick="window.location.href='weekly-test.html'">
         <div class="qc-icon" style="background:rgba(229,62,62,0.1)">📅</div>
@@ -1048,12 +1028,6 @@
 
       await sb.auth.updateUser({ data: { is_activated: true } });
 
-      // Update profiles table so admin can see activation status
-      await sb.from('profiles').upsert({
-        id: currentUser.id,
-        is_activated: true
-      }, { onConflict: 'id' });
-
       alertEl.textContent = '🎉 Activated! You now have full access.';
       alertEl.className = 'modal-alert show success';
       document.getElementById('activation-banner').style.display = 'none';
@@ -1134,30 +1108,6 @@ ${body}`);
   }
 
   init();
-
-  async function contactAdminWhatsApp() {
-    try {
-      const { data } = await sb.from('settings').select('value').eq('key', 'whatsapp_number').single();
-      const { data: msgData } = await sb.from('settings').select('value').eq('key', 'whatsapp_message').single();
-      const number = data?.value;
-      if (!number) {
-        // Fallback to payments page if no number set
-        window.location.href = 'payments.html';
-        return;
-      }
-      const name = currentUser?.user_metadata?.full_name || 'Student';
-      const uni = currentUser?.user_metadata?.university || '';
-      const defaultMsg = msgData?.value || 'Hello, I would like to get my activation key.';
-      const msg = encodeURIComponent(`${defaultMsg}
-
-Name: ${name}
-University: ${uni}
-Amount: ₦900`);
-      window.open('https://wa.me/' + number + '?text=' + msg, '_blank');
-    } catch(e) {
-      window.location.href = 'payments.html';
-    }
-  }
 </script>
 </body>
 </html>

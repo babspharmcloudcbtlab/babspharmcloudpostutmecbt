@@ -390,22 +390,40 @@
 
       const sorted=Object.values(best).sort((a,b)=>b.pct-a.pct);
 
+      // Fetch profiles to get university info
+      const userIds=sorted.map(r=>r.user_id);
+      const{data:profiles}=await sb.from('profiles').select('id,full_name,university').in('id',userIds);
+      const profileMap={};
+      (profiles||[]).forEach(p=>{profileMap[p.id]=p;});
+
+      const medals=['🥇','🥈','🥉'];
       container.innerHTML=`
         <p style="font-size:13px;color:var(--gray-400);margin-bottom:14px;">${sorted.length} student${sorted.length!==1?'s':''} submitted</p>
         <table>
           <thead>
-            <tr><th>Rank</th><th>Student</th><th>Score</th><th>Correct</th><th>Time</th><th>Attempts</th></tr>
+            <tr><th>Rank</th><th>Student</th><th>University</th><th>Score</th><th>Correct</th><th>Time</th><th>Attempts</th></tr>
           </thead>
           <tbody>
             ${sorted.map((r,i)=>{
               const cls=r.pct>=60?'good':r.pct>=40?'mid':'low';
-              const mins=Math.floor(r.time_taken/60);
-              const secs=r.time_taken%60;
+              const mins=Math.floor((r.time_taken||0)/60);
+              const secs=(r.time_taken||0)%60;
               const attempts=data.filter(d=>d.user_id===r.user_id).length;
+              const profile=profileMap[r.user_id]||{};
+              const name=profile.full_name||r.student_name||'Unknown';
+              const uni=profile.university||r.university||'—';
+              const medal=i<3?medals[i]:'';
+              const initials=name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
               return`
-                <tr>
-                  <td><strong>${i+1}</strong></td>
-                  <td>${r.student_name||'Unknown'}</td>
+                <tr style="${i===0?'background:rgba(255,215,0,0.08);':''}">
+                  <td><strong>${medal||i+1}</strong></td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div style="width:30px;height:30px;border-radius:50%;background:#1a3bbd;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${initials}</div>
+                      <span>${name}</span>
+                    </div>
+                  </td>
+                  <td><span style="background:#eef0f7;padding:3px 8px;border-radius:6px;font-size:11px;">${uni}</span></td>
                   <td><span class="score-cell ${cls}">${r.pct}%</span></td>
                   <td>${r.score}/${r.total}</td>
                   <td>${mins}m ${secs}s</td>

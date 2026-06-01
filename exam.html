@@ -535,11 +535,43 @@
     color: var(--gray-800);
     line-height: 1.4;
     flex: 1;
+    pointer-events: none;
   }
 
   .option-indicator {
     font-size: 16px;
     margin-left: auto;
+    pointer-events: none;
+  }
+
+  .option-letter {
+    pointer-events: none;
+  }
+
+  /* WATERMARK */
+  .exam-watermark {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+  }
+  .watermark-text {
+    position: absolute;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(26,59,189,0.07);
+    white-space: nowrap;
+    transform: rotate(-35deg);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* DISABLE TEXT SELECTION on exam */
+  .exam-content {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
   }
 
   /* EXPLANATION */
@@ -696,20 +728,22 @@
   #result-screen {
     display: none;
     min-height: 100vh;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 32px;
+    justify-content: flex-start;
+    padding: 24px 16px 40px;
     background: var(--gray-50);
   }
 
   .result-card {
     background: white;
     border-radius: 24px;
-    padding: 48px 40px;
+    padding: 32px 24px;
     max-width: 560px;
     width: 100%;
     text-align: center;
     box-shadow: 0 20px 60px rgba(0,0,0,0.08);
+    margin-bottom: 24px;
   }
 
   .result-emoji { font-size: 64px; margin-bottom: 16px; }
@@ -1077,7 +1111,9 @@
 </div>
 
 <!-- ── EXAM SCREEN ────────────────────────────────────────── -->
-<div id="exam-screen" style="display:none; flex-direction:column; min-height:100vh;">
+<div id="exam-screen" style="display:none; flex-direction:column; min-height:100vh;" class="exam-content">
+  <!-- WATERMARK OVERLAY -->
+  <div class="exam-watermark" id="exam-watermark"></div>
 
   <!-- EXAM TOPBAR -->
   <div class="exam-topbar">
@@ -1181,7 +1217,7 @@
   </div>
 
   <!-- CORRECTION SECTION -->
-  <div style="width:100%;max-width:680px;margin:24px auto 0;">
+  <div style="width:100%;max-width:560px;">
     <h3 style="font-size:16px;font-weight:800;color:#1a1a2e;margin-bottom:14px;text-align:center;">📋 Question Review</h3>
     <div id="correction-list"></div>
   </div>
@@ -1336,11 +1372,20 @@
       return;
     }
 
-    questions = data;
+    // Only shuffle for activated users (free users get consistent order)
+    if(isActivated){
+      questions = shuffleArray(data).map(q => shuffleOptions(q));
+    } else {
+      questions = data;
+    }
+
     answers = {};
     savedQuestions = new Set();
     flagged = new Set();
     currentQ = 0;
+
+    // Set up watermark with student name
+    setupWatermark();
 
     // Switch screens
     document.getElementById('subject-screen').style.display = 'none';
@@ -1377,6 +1422,56 @@
       else if (flagged.has(i)) el.classList.add('flagged');
       else if (answers[i] !== undefined) el.classList.add('answered');
     });
+  }
+
+  // ── SHUFFLE HELPERS ───────────────────────────────────────────
+  function shuffleArray(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function shuffleOptions(q) {
+    // Build options array with original letter mapping
+    const opts = [
+      { letter: 'A', text: q.option_a },
+      { letter: 'B', text: q.option_b },
+      { letter: 'C', text: q.option_c },
+      { letter: 'D', text: q.option_d },
+    ];
+    const shuffled = shuffleArray(opts);
+    // Find which new position has the correct answer
+    const correctText = q['option_' + q.correct_answer.toLowerCase()];
+    const newCorrect = ['A','B','C','D'][shuffled.findIndex(o => o.text === correctText)];
+    return {
+      ...q,
+      option_a: shuffled[0].text,
+      option_b: shuffled[1].text,
+      option_c: shuffled[2].text,
+      option_d: shuffled[3].text,
+      correct_answer: newCorrect,
+      _original_letters: shuffled.map(o => o.letter)
+    };
+  }
+
+  // ── WATERMARK ──────────────────────────────────────────────────
+  function setupWatermark() {
+    const wm = document.getElementById('exam-watermark');
+    if (!wm) return;
+    const name = currentUser?.user_metadata?.full_name || 'Student';
+    const email = currentUser?.email || '';
+    const label = name + ' • ' + email;
+    let html = '';
+    // Create diagonal watermark grid
+    for (let row = -2; row < 20; row++) {
+      for (let col = -1; col < 5; col++) {
+        html += `<div class="watermark-text" style="top:${row * 160 + (col % 2 === 0 ? 0 : 80)}px;left:${col * 280 - 60}px;">${label}</div>`;
+      }
+    }
+    wm.innerHTML = html;
   }
 
   // ── SHOW QUESTION ──────────────────────────────────────────────
@@ -1570,13 +1665,28 @@
 
     // Save to Supabase
     try {
+      // Collect wrong question IDs for weak areas
+      const wrongIds = questions
+        .map((q,i) => answers[i] !== q.correct_answer ? q.id : null)
+        .filter(Boolean);
+
       await sb.from('results').insert({
         user_id: currentUser.id,
-        subject_id: selectedSubject.id,
+        subject_id: selectedSubject?.id || null,
         score: correct,
         total: total,
         time_taken: (Math.max(1, parseInt(document.getElementById('time-limit-min')?.value) || 20) * 60) - timeLeft
       });
+
+      // Save wrong questions for weak areas tracking
+      if(wrongIds.length > 0){
+        const weakRows = wrongIds.map(qid => ({
+          user_id: currentUser.id,
+          question_id: qid,
+          missed_at: new Date().toISOString()
+        }));
+        await sb.from('weak_questions').upsert(weakRows, {onConflict:'user_id,question_id'}).catch(()=>{});
+      }
     } catch(e) { console.log('Result save error:', e); }
 
     // Show results
@@ -1735,7 +1845,69 @@
   });
 
   // ── START ──────────────────────────────────────────────────────
+  // ── MIX MODE ──────────────────────────────────────────────────
+  async function startMixMode(){
+    const limit = isActivated ? 20 : 3;
+    const uni = currentUser.user_metadata?.university || 'OAU';
+    const {data:subjects} = await sb.from('subjects').select('id').eq('university',uni);
+    if(!subjects||!subjects.length){alert('No subjects found.');return;}
+    // Get random questions from all subjects
+    const {data} = await sb.from('questions')
+      .select('*')
+      .in('subject_id', subjects.map(s=>s.id))
+      .limit(limit * 3);
+    if(!data||!data.length){alert('No questions found.');return;}
+    // Shuffle and pick
+    const shuffled = [...data].sort(()=>Math.random()-0.5).slice(0,limit);
+    questions = shuffled.map(q=>shuffleOptions(q));
+    answers = {}; savedQuestions = new Set(); flagged = new Set(); currentQ = 0;
+    selectedSubject = {id:null, name:'Subject Mix', icon:'🎲'};
+    document.getElementById('subject-screen').style.display='none';
+    document.getElementById('exam-screen').style.display='flex';
+    document.getElementById('exam-subject-icon').textContent='🎲';
+    document.getElementById('exam-subject-name').textContent='Subject Mix';
+    buildQuestionMap(); showQuestion(0); startTimer(); setupWatermark();
+  }
+
+  // ── WEAK AREAS MODE ────────────────────────────────────────────
+  async function startWeakAreas(){
+    const {data:weak} = await sb.from('weak_questions')
+      .select('question_id')
+      .eq('user_id', currentUser.id)
+      .limit(isActivated?50:3);
+    if(!weak||!weak.length){
+      alert('No weak areas yet! Complete some exams first and your missed questions will appear here.');
+      return;
+    }
+    const ids = weak.map(w=>w.question_id);
+    const {data} = await sb.from('questions').select('*').in('id',ids);
+    if(!data||!data.length){alert('Could not load weak questions.');return;}
+    questions = [...data].sort(()=>Math.random()-0.5).map(q=>shuffleOptions(q));
+    answers = {}; savedQuestions = new Set(); flagged = new Set(); currentQ = 0;
+    selectedSubject = {id:null, name:'Weak Areas', icon:'🎯'};
+    document.getElementById('subject-screen').style.display='none';
+    document.getElementById('exam-screen').style.display='flex';
+    document.getElementById('exam-subject-icon').textContent='🎯';
+    document.getElementById('exam-subject-name').textContent='Weak Areas';
+    buildQuestionMap(); showQuestion(0); startTimer(); setupWatermark();
+  }
+
   init();
+
+  // Disable right-click on exam
+  document.addEventListener('contextmenu', e => {
+    if (document.getElementById('exam-screen').style.display !== 'none') {
+      e.preventDefault();
+    }
+  });
+
+  // Disable long press on mobile (prevents save image)
+  document.addEventListener('touchstart', e => {}, {passive: true});
+  document.addEventListener('selectstart', e => {
+    if (document.getElementById('exam-screen').style.display !== 'none') {
+      e.preventDefault();
+    }
+  });
 </script>
 </body>
 </html>

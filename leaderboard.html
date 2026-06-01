@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Leaderboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--blue:#1a3bbd;--gold:#f5a623;--success:#38a169;--gray-50:#f8f9fc;--gray-100:#f0f2f8;--gray-200:#e2e8f0;--gray-400:#94a3b8;--gray-600:#64748b;--gray-800:#1e293b;}
+body{font-family:'Sora',sans-serif;background:var(--gray-50);min-height:100vh;}
+.top-nav{background:#fff;border-bottom:1px solid var(--gray-100);padding:14px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.back-btn{background:none;border:none;font-size:20px;cursor:pointer;}
+.nav-title{font-size:17px;font-weight:800;color:var(--gray-800);}
+
+.hero{background:linear-gradient(135deg,#1a3bbd,#2d52e0);padding:28px 20px;text-align:center;color:#fff;}
+.hero h2{font-size:22px;font-weight:800;margin-bottom:4px;}
+.hero p{font-size:13px;opacity:.8;}
+
+.filter-row{display:flex;gap:8px;padding:16px 20px;overflow-x:auto;background:#fff;border-bottom:1px solid var(--gray-100);}
+.filter-btn{padding:8px 16px;border:2px solid var(--gray-200);border-radius:20px;background:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Sora',sans-serif;color:var(--gray-600);}
+.filter-btn.active{border-color:var(--blue);background:var(--blue);color:#fff;}
+
+.content{padding:16px 20px;max-width:600px;margin:0 auto;}
+
+/* MY RANK CARD */
+.my-rank-card{background:linear-gradient(135deg,#1a3bbd,#2d52e0);border-radius:16px;padding:16px 20px;color:#fff;display:flex;align-items:center;gap:16px;margin-bottom:20px;}
+.my-rank-num{font-size:32px;font-weight:800;}
+.my-rank-info{flex:1;}
+.my-rank-name{font-size:15px;font-weight:700;margin-bottom:2px;}
+.my-rank-sub{font-size:12px;opacity:.8;}
+.my-rank-score{font-size:22px;font-weight:800;}
+
+/* TOP 3 */
+.top3{display:flex;align-items:flex-end;justify-content:center;gap:12px;margin-bottom:24px;}
+.podium-item{text-align:center;flex:1;}
+.podium-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;margin:0 auto 6px;}
+.podium-1 .podium-avatar{background:var(--gold);width:64px;height:64px;font-size:22px;}
+.podium-name{font-size:12px;font-weight:700;color:var(--gray-800);margin-bottom:2px;}
+.podium-score{font-size:11px;color:var(--gray-400);}
+.podium-bar{border-radius:8px 8px 0 0;margin-top:8px;}
+.podium-1 .podium-bar{height:80px;background:linear-gradient(180deg,#ffd700,#f5a623);}
+.podium-2 .podium-bar{height:56px;background:linear-gradient(180deg,#c0c0c0,#a0a0a0);}
+.podium-3 .podium-bar{height:40px;background:linear-gradient(180deg,#cd7f32,#a0522d);}
+.podium-rank{font-size:18px;margin-bottom:4px;}
+
+/* LIST */
+.lb-list{display:flex;flex-direction:column;gap:8px;}
+.lb-item{background:#fff;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}
+.lb-item.me{border:2px solid var(--blue);background:rgba(26,59,189,0.03);}
+.lb-rank{font-size:14px;font-weight:800;color:var(--gray-400);width:28px;text-align:center;}
+.lb-avatar{width:38px;height:38px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.lb-info{flex:1;}
+.lb-name{font-size:14px;font-weight:700;color:var(--gray-800);}
+.lb-sub{font-size:11px;color:var(--gray-400);}
+.lb-score{text-align:right;}
+.lb-pct{font-size:16px;font-weight:800;color:var(--blue);}
+.lb-exams{font-size:11px;color:var(--gray-400);}
+.medal{font-size:20px;}
+.empty{text-align:center;padding:40px;color:var(--gray-400);}
+.loading{text-align:center;padding:40px;color:var(--gray-400);}
+</style>
+</head>
+<body>
+<div class="top-nav">
+  <button class="back-btn" onclick="window.location.href='dashboard.html'">←</button>
+  <div class="nav-title">🏆 Leaderboard</div>
+</div>
+
+<div class="hero">
+  <h2>Top Students</h2>
+  <p>See how you rank against other students</p>
+</div>
+
+<div class="filter-row" id="filter-row">
+  <button class="filter-btn active" onclick="setFilter('all')">🌍 All Time</button>
+  <button class="filter-btn" onclick="setFilter('week')">📅 This Week</button>
+  <button class="filter-btn" onclick="setFilter('month')">📆 This Month</button>
+</div>
+
+<div class="content">
+  <div id="my-rank-card" style="display:none" class="my-rank-card">
+    <div class="my-rank-num" id="my-rank-num">#-</div>
+    <div class="my-rank-info">
+      <div class="my-rank-name" id="my-rank-name">You</div>
+      <div class="my-rank-sub" id="my-rank-sub">Your ranking</div>
+    </div>
+    <div class="my-rank-score" id="my-rank-score">--%</div>
+  </div>
+
+  <div class="top3" id="top3" style="display:none"></div>
+  <div class="lb-list" id="lb-list"><div class="loading">Loading leaderboard...</div></div>
+</div>
+
+<script>
+const SUPABASE_URL='https://xdixrqlhctisthfdvzvn.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkaXhycWxoY3Rpc3RoZmR2enZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk3MTQ1MjEsImV4cCI6MjA5NTI5MDUyMX0.mazAzPT_g_j2L-_ahFz2POO8X5WiymmWLKdoWD3Ziag';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+let currentUser=null, currentFilter='all';
+
+async function init(){
+  const{data:{session}}=await sb.auth.getSession();
+  if(!session){window.location.href='index.html';return;}
+  currentUser=session.user;
+  loadLeaderboard();
+}
+
+function setFilter(f){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['all','week','month'][i]===f);
+  });
+  loadLeaderboard();
+}
+
+async function loadLeaderboard(){
+  document.getElementById('lb-list').innerHTML='<div class="loading">Loading...</div>';
+  document.getElementById('top3').style.display='none';
+  document.getElementById('my-rank-card').style.display='none';
+
+  try{
+    // Build date filter
+    let dateFilter = null;
+    if(currentFilter==='week'){
+      const d=new Date(); d.setDate(d.getDate()-7);
+      dateFilter=d.toISOString();
+    } else if(currentFilter==='month'){
+      const d=new Date(); d.setMonth(d.getMonth()-1);
+      dateFilter=d.toISOString();
+    }
+
+    let query=sb.from('results').select('user_id,score,total,created_at');
+    if(dateFilter) query=query.gte('created_at',dateFilter);
+    const{data:results}=await query;
+
+    if(!results||!results.length){
+      document.getElementById('lb-list').innerHTML='<div class="empty">No results yet. Be the first! 🏆</div>';
+      return;
+    }
+
+    // Aggregate per user: avg score % and total exams
+    const userMap={};
+    results.forEach(r=>{
+      const pct=r.total>0?Math.round((r.score/r.total)*100):0;
+      if(!userMap[r.user_id]){userMap[r.user_id]={total_pct:0,count:0,user_id:r.user_id};}
+      userMap[r.user_id].total_pct+=pct;
+      userMap[r.user_id].count++;
+    });
+
+    // Get profiles
+    const uids=Object.keys(userMap);
+    const{data:profiles}=await sb.from('profiles').select('id,full_name,university').in('id',uids);
+    const profMap={};
+    (profiles||[]).forEach(p=>{profMap[p.id]=p;});
+
+    // Build ranked list
+    const ranked=Object.values(userMap).map(u=>({
+      ...u,
+      avg_pct: Math.round(u.total_pct/u.count),
+      name: profMap[u.user_id]?.full_name||'Student',
+      university: profMap[u.user_id]?.university||'',
+    })).sort((a,b)=>b.avg_pct-a.avg_pct||b.count-a.count);
+
+    // Find my rank
+    const myRank=ranked.findIndex(r=>r.user_id===currentUser.id);
+
+    // My rank card
+    if(myRank>=0){
+      const me=ranked[myRank];
+      document.getElementById('my-rank-card').style.display='flex';
+      document.getElementById('my-rank-num').textContent='#'+(myRank+1);
+      document.getElementById('my-rank-name').textContent=me.name+' (You)';
+      document.getElementById('my-rank-sub').textContent=me.count+' exam'+(me.count!==1?'s':'')+' taken';
+      document.getElementById('my-rank-score').textContent=me.avg_pct+'%';
+    }
+
+    // Top 3 podium
+    if(ranked.length>=2){
+      const medals=['🥇','🥈','🥉'];
+      const colors=['#f5a623','#a0a0a0','#cd7f32'];
+      const top3=ranked.slice(0,Math.min(3,ranked.length));
+      const order=top3.length>=3?[1,0,2]:top3.length===2?[1,0]:[0];
+      const podClasses=['podium-2','podium-1','podium-3'];
+      document.getElementById('top3').style.display='flex';
+      document.getElementById('top3').innerHTML=order.map(i=>{
+        const r=top3[i];
+        if(!r)return'';
+        const initials=r.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
+        return`<div class="podium-item ${podClasses[i]}">
+          <div class="podium-rank">${medals[i]}</div>
+          <div class="podium-avatar" style="background:${colors[i]}">${initials}</div>
+          <div class="podium-name">${r.name.split(' ')[0]}</div>
+          <div class="podium-score">${r.avg_pct}%</div>
+          <div class="podium-bar"></div>
+        </div>`;}).join('');
+    }
+
+    // Full list (from rank 4+)
+    const medals=['🥇','🥈','🥉'];
+    document.getElementById('lb-list').innerHTML=ranked.map((r,i)=>{
+      const isMe=r.user_id===currentUser.id;
+      const initials=r.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
+      return`<div class="lb-item ${isMe?'me':''}">
+        <div class="lb-rank">${i<3?medals[i]:i+1}</div>
+        <div class="lb-avatar" style="background:${isMe?'var(--gold)':'var(--blue)'}">${initials}</div>
+        <div class="lb-info">
+          <div class="lb-name">${r.name}${isMe?' (You)':''}</div>
+          <div class="lb-sub">${r.university||''} • ${r.count} exam${r.count!==1?'s':''}</div>
+        </div>
+        <div class="lb-score">
+          <div class="lb-pct">${r.avg_pct}%</div>
+          <div class="lb-exams">avg score</div>
+        </div>
+      </div>`;}).join('');
+
+  }catch(e){
+    document.getElementById('lb-list').innerHTML='<div class="empty">Failed to load leaderboard</div>';
+    console.log(e);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
