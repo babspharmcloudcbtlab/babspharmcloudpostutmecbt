@@ -971,7 +971,8 @@
         }, { onConflict: 'id' });
       }
 
-      showAlert('Account created! Please check your email to verify.', 'success');
+      showAlert('Account created! You can now sign in.', 'success');
+      setTimeout(() => switchTab('login'), 2000);
     } catch (err) {
       showAlert(err.message || 'Signup failed. Please try again.');
     } finally {

@@ -1009,22 +1009,57 @@
     btn.textContent = '...'; btn.disabled = true;
 
     try {
+      // Fetch the key without filtering by is_used so we can handle shared keys properly
       const { data, error } = await sb
         .from('activation_keys')
         .select('*')
         .eq('key', key)
-        .eq('is_used', false)
         .single();
 
       if (error || !data) {
-        alertEl.textContent = 'Invalid or already used key. Try again.';
+        alertEl.textContent = 'Invalid activation key. Try again.';
         alertEl.className = 'modal-alert show error';
         return;
       }
 
-      await sb.from('activation_keys').update({
-        is_used: true, used_by: currentUser.id, used_at: new Date().toISOString()
-      }).eq('key', key);
+      const isShared = data.max_uses !== null && data.max_uses !== undefined;
+
+      if (isShared) {
+        // Shared key logic
+        const useCount = data.use_count || 0;
+        const maxUses = data.max_uses; // 0 = unlimited
+
+        // Check if key is full
+        if (data.is_used) {
+          alertEl.textContent = 'This key has reached its student limit.';
+          alertEl.className = 'modal-alert show error';
+          return;
+        }
+
+        const newCount = useCount + 1;
+        // Mark full only if max_uses > 0 and we've now hit the limit
+        const nowFull = maxUses > 0 && newCount >= maxUses;
+
+        await sb.from('activation_keys').update({
+          use_count: newCount,
+          is_used: nowFull,
+          used_at: nowFull ? new Date().toISOString() : data.used_at
+        }).eq('key', key);
+
+      } else {
+        // Single-use key logic
+        if (data.is_used) {
+          alertEl.textContent = 'This key has already been used.';
+          alertEl.className = 'modal-alert show error';
+          return;
+        }
+
+        await sb.from('activation_keys').update({
+          is_used: true,
+          used_by: currentUser.id,
+          used_at: new Date().toISOString()
+        }).eq('key', key);
+      }
 
       await sb.auth.updateUser({ data: { is_activated: true } });
 
