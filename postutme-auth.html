@@ -971,8 +971,14 @@
         }, { onConflict: 'id' });
       }
 
-      showAlert('Account created! You can now sign in.', 'success');
-      setTimeout(() => switchTab('login'), 2000);
+      // If session exists, email confirmation is off — go straight to dashboard
+      if (data?.session) {
+        showAlert('Account created! Taking you to dashboard...', 'success');
+        setTimeout(() => window.location.href = 'dashboard.html', 1200);
+      } else {
+        showAlert('Account created! You can now sign in.', 'success');
+        setTimeout(() => switchTab('login'), 2000);
+      }
     } catch (err) {
       showAlert(err.message || 'Signup failed. Please try again.');
     } finally {
