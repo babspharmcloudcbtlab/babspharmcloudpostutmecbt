@@ -213,8 +213,16 @@
         </div>
 
         <div class="form-group">
+          <label>Portal / Faculty</label>
+          <select id="faculty-select">
+            <option value="">Post UTME (default)</option>
+            <option value="Pharmacy">💊 Pharmacy CBT</option>
+          </select>
+        </div>
+
+        <div class="form-group">
           <label>Subject Name</label>
-          <input type="text" id="subject-name" placeholder="e.g. Biology, Mathematics">
+          <input type="text" id="subject-name" placeholder="e.g. CHM001, PCH201">
         </div>
 
         <div class="form-group">
@@ -317,13 +325,19 @@
     btn.disabled = true; btn.textContent = 'Adding...';
 
     try {
+      const faculty = document.getElementById('faculty-select').value;
       const { error } = await sb.from('subjects').insert({
-        name, university: uni, icon: selectedEmoji, color: selectedColor, question_count: 0
+        name, university: uni, icon: selectedEmoji, color: selectedColor,
+        question_count: 0,
+        ...(faculty ? { faculty } : {})
       });
 
       if (error) throw error;
 
-      showAlert(`✅ "${name}" added for ${uni}!`, 'success');
+      const facultyVal = document.getElementById('faculty-select').value;
+      const portalLabel = facultyVal ? `Pharmacy CBT` : `Post UTME`;
+      showAlert(`✅ "${name}" added for ${uni} (${portalLabel})!`, 'success');
+      document.getElementById('faculty-select').value = '';
       document.getElementById('subject-name').value = '';
       loadSubjects();
 
