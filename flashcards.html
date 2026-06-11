@@ -50,8 +50,8 @@ body{font-family:'Sora',sans-serif;background:var(--gray-50);min-height:100vh;}
 .card-question{font-size:16px;font-weight:700;line-height:1.5;color:#fff;}
 .card-answer{font-size:15px;font-weight:700;color:var(--blue);margin-bottom:10px;}
 .card-options{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
-.card-opt{font-size:13px;color:var(--gray-600);padding:6px 10px;background:var(--gray-50);border-radius:8px;}
-.card-opt.correct{background:#e6f4ea;color:var(--success);font-weight:700;}
+.card-opt{font-size:13px;color:rgba(255,255,255,0.9);padding:6px 10px;background:rgba(255,255,255,0.15);border-radius:8px;}
+.card-opt.correct{background:rgba(56,161,105,0.3);color:#fff;font-weight:700;}
 .card-exp{font-size:12px;color:var(--gray-600);background:var(--gray-50);border-radius:8px;padding:10px;line-height:1.5;}
 .card-exp span{font-weight:700;color:var(--blue);}
 .tap-hint{font-size:12px;opacity:.6;text-align:center;margin-top:8px;}
@@ -111,12 +111,12 @@ body{font-family:'Sora',sans-serif;background:var(--gray-50);min-height:100vh;}
       <div class="card-front">
         <div class="card-label">Question — tap to reveal answer</div>
         <div class="card-question" id="card-question">Loading...</div>
-        <div class="tap-hint">👆 Tap card to flip</div>
+        <div class="card-options" id="card-options" style="margin-top:14px;"></div>
+        <div class="tap-hint">👆 Tap card to see answer</div>
       </div>
       <div class="card-back">
         <div class="card-label">Answer</div>
         <div class="card-answer" id="card-answer"></div>
-        <div class="card-options" id="card-options"></div>
         <div class="card-exp" id="card-exp" style="display:none;"><span>💡 Explanation:</span> <span id="card-exp-text"></span></div>
       </div>
     </div>

@@ -53,7 +53,7 @@
   .alert.success{background:#f0fff4;color:var(--success);border:1px solid #c6f6d5;}
 
   /* STATS */
-  .keys-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;}
+  .keys-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
   .ks-card{background:white;border-radius:12px;padding:16px;border:1.5px solid var(--gray-100);text-align:center;}
   .ks-num{font-family:'Sora',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px;}
   .ks-label{font-size:12px;color:var(--gray-400);}
@@ -81,7 +81,15 @@
   .del-btn{width:28px;height:28px;border-radius:8px;background:rgba(229,62,62,0.08);border:none;cursor:pointer;color:var(--error);font-size:13px;display:flex;align-items:center;justify-content:center;}
   .del-btn:hover{background:var(--error);color:white;}
 
-  .empty-state{text-align:center;padding:40px;color:var(--gray-400);}
+  .ks-num.shared{color:#805ad5;}
+
+  /* KEY TYPE TOGGLE */
+  .type-toggle{display:flex;gap:6px;margin-bottom:0;}
+  .type-btn{flex:1;padding:10px 8px;border-radius:10px;border:1.5px solid var(--gray-200);background:white;font-size:12px;font-weight:600;color:var(--gray-600);cursor:pointer;transition:all 0.15s;text-align:center;}
+  .type-btn.active{background:var(--blue);color:white;border-color:var(--blue);}
+  .type-btn.shared-active{background:#805ad5;color:white;border-color:#805ad5;}
+  .shared-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(128,90,213,0.1);color:#805ad5;white-space:nowrap;}
+  .uses-badge{font-size:11px;color:var(--gray-400);margin-top:2px;}
   .empty-icon{font-size:40px;margin-bottom:12px;}
   .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;cursor:pointer;}
   .sidebar-overlay.show{display:block;}
@@ -122,7 +130,7 @@
     .stats-grid { grid-template-columns: repeat(2,1fr) !important; }
     .quick-actions { grid-template-columns: repeat(2,1fr) !important; }
     .form-row { grid-template-columns: 1fr !important; }
-    .keys-stats { grid-template-columns: repeat(3,1fr) !important; }
+    .keys-stats { grid-template-columns: repeat(2,1fr) !important; }
   }
 </style>
 </head>
@@ -177,6 +185,18 @@
           <input type="text" id="key-note" placeholder="e.g. For Ayodeji, Batch 1">
         </div>
 
+        <div class="form-group">
+          <label>Key Type</label>
+          <div class="type-toggle">
+            <button class="type-btn active" id="type-single-btn" onclick="setKeyType('single',this)">🔒 Single Use</button>
+            <button class="type-btn" id="type-shared-btn" onclick="setKeyType('shared',this)">👥 Shared Key</button>
+          </div>
+        </div>
+        <div class="form-group" id="max-uses-group" style="display:none;">
+          <label>Max Students (leave blank for unlimited)</label>
+          <input type="number" id="key-max-uses" placeholder="e.g. 200" min="1">
+        </div>
+
         <button class="submit-btn" id="add-key-btn" onclick="addKey()">Save Key →</button>
 
         <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--gray-100);">
@@ -189,6 +209,17 @@
             <label>Prefix (Optional)</label>
             <input type="text" id="bulk-prefix" placeholder="e.g. OAU or UI" maxlength="5" style="text-transform:uppercase;">
           </div>
+          <div class="form-group">
+            <label>Key Type</label>
+            <div class="type-toggle">
+              <button class="type-btn active" id="bulk-type-single-btn" onclick="setBulkKeyType('single',this)">🔒 Single Use</button>
+              <button class="type-btn" id="bulk-type-shared-btn" onclick="setBulkKeyType('shared',this)">👥 Shared Key</button>
+            </div>
+          </div>
+          <div class="form-group" id="bulk-max-uses-group" style="display:none;">
+            <label>Max Students per Key (leave blank for unlimited)</label>
+            <input type="number" id="bulk-max-uses" placeholder="e.g. 200" min="1">
+          </div>
           <button class="submit-btn" id="bulk-key-btn" onclick="bulkCreateKeys()">Create Bulk Keys →</button>
         </div>
       </div>
@@ -199,6 +230,7 @@
           <div class="ks-card"><div class="ks-num total" id="stat-total">--</div><div class="ks-label">Total Keys</div></div>
           <div class="ks-card"><div class="ks-num unused" id="stat-unused">--</div><div class="ks-label">Available</div></div>
           <div class="ks-card"><div class="ks-num used" id="stat-used">--</div><div class="ks-label">Used</div></div>
+          <div class="ks-card"><div class="ks-num shared" id="stat-shared">--</div><div class="ks-label">Shared Keys</div></div>
         </div>
 
         <div class="list-panel">
@@ -225,6 +257,8 @@
   const sb=createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
   let allKeys=[];
   let currentFilter='all';
+  let keyType='single';
+  let bulkKeyType='single';
 
   async function init(){
     const {data:{session}}=await sb.auth.getSession();
@@ -232,6 +266,20 @@
     const {data:adminData}=await sb.from('admins').select('id').eq('id',session.user.id).single();
     if(!adminData){window.location.href='admin-login.html';return;}
     loadKeys();
+  }
+
+  function setKeyType(type, btn){
+    keyType=type;
+    document.querySelectorAll('#type-single-btn,#type-shared-btn').forEach(b=>{b.classList.remove('active','shared-active');});
+    if(type==='shared'){btn.classList.add('shared-active');}else{btn.classList.add('active');}
+    document.getElementById('max-uses-group').style.display=type==='shared'?'block':'none';
+  }
+
+  function setBulkKeyType(type, btn){
+    bulkKeyType=type;
+    document.querySelectorAll('#bulk-type-single-btn,#bulk-type-shared-btn').forEach(b=>{b.classList.remove('active','shared-active');});
+    if(type==='shared'){btn.classList.add('shared-active');}else{btn.classList.add('active');}
+    document.getElementById('bulk-max-uses-group').style.display=type==='shared'?'block':'none';
   }
 
   function updatePreview(){
@@ -258,18 +306,28 @@
     if(!key){return showAlert('Please enter a key value.','error');}
     if(key.length<4){return showAlert('Key is too short.','error');}
 
+    let max_uses=null;
+    if(keyType==='shared'){
+      const v=document.getElementById('key-max-uses').value.trim();
+      max_uses=v?parseInt(v):null; // null = unlimited
+      if(max_uses!==null&&max_uses<1){return showAlert('Max students must be at least 1.','error');}
+    }
+
     const btn=document.getElementById('add-key-btn');
     btn.disabled=true;btn.textContent='Saving...';
 
     try{
-      const {error}=await sb.from('activation_keys').insert({key,is_used:false});
+      const row={key,is_used:false,use_count:0};
+      if(keyType==='shared')row.max_uses=max_uses!==null?max_uses:0; // 0=unlimited, N=capped
+      const {error}=await sb.from('activation_keys').insert(row);
       if(error){
         if(error.code==='23505') throw new Error('This key already exists. Please use a different key.');
         throw error;
       }
-      showAlert('✅ Key saved successfully!','success');
+      showAlert(keyType==='shared'?`✅ Shared key saved! (${max_uses?max_uses+' max students':'unlimited'})`:'✅ Key saved successfully!','success');
       document.getElementById('key-input').value='';
       document.getElementById('key-note').value='';
+      document.getElementById('key-max-uses').value='';
       document.getElementById('key-preview').textContent='OAU-XXXX-XXXX';
       loadKeys();
     }catch(e){
@@ -285,6 +343,13 @@
     if(!count||count<1){return showAlert('Please enter how many keys to create.','error');}
     if(count>500){return showAlert('Maximum 500 keys at once.','error');}
 
+    let max_uses=null;
+    if(bulkKeyType==='shared'){
+      const v=document.getElementById('bulk-max-uses').value.trim();
+      max_uses=v?parseInt(v):null;
+      if(max_uses!==null&&max_uses<1){return showAlert('Max students must be at least 1.','error');}
+    }
+
     const btn=document.getElementById('bulk-key-btn');
     btn.disabled=true;btn.textContent='Creating...';
 
@@ -294,7 +359,9 @@
 
       const keys=Array.from({length:count},()=>{
         const k=`${seg()}-${seg()}-${seg()}`;
-        return{key:prefix?`${prefix}-${k}`:k,is_used:false};
+        const row={key:prefix?`${prefix}-${k}`:k,is_used:false,use_count:0};
+        if(bulkKeyType==='shared')row.max_uses=max_uses!==null?max_uses:0;
+        return row;
       });
 
       const batchSize=50;
@@ -303,8 +370,9 @@
         if(error)throw error;
       }
 
-      showAlert(`✅ ${count} keys created successfully!`,'success');
+      showAlert(`✅ ${count} ${bulkKeyType==='shared'?'shared ':''}keys created successfully!`,'success');
       document.getElementById('bulk-count').value='';
+      document.getElementById('bulk-max-uses').value='';
       loadKeys();
     }catch(e){
       showAlert(e.message||'Failed to create keys.','error');
@@ -329,9 +397,12 @@
     const total=allKeys.length;
     const used=allKeys.filter(k=>k.is_used).length;
     const unused=total-used;
+    // Shared keys: max_uses is not null (0=unlimited, N=capped)
+    const sharedCount=allKeys.filter(k=>k.max_uses!==null&&k.max_uses!==undefined).length;
     document.getElementById('stat-total').textContent=total;
     document.getElementById('stat-unused').textContent=unused;
     document.getElementById('stat-used').textContent=used;
+    document.getElementById('stat-shared').textContent=sharedCount;
   }
 
   function filterKeys(filter,btn){
@@ -352,17 +423,31 @@
       return;
     }
 
-    container.innerHTML=filtered.map(k=>`
+    container.innerHTML=filtered.map(k=>{
+      const isShared=k.max_uses!==null&&k.max_uses!==undefined;
+      const useCount=k.use_count||0;
+      const maxLabel=isShared?(k.max_uses===0?'∞':k.max_uses):null;
+      const usageLine=isShared?`${useCount} / ${maxLabel} students`:'';
+      const sharedBadge=isShared?`<span class="shared-badge">👥 Shared</span>`:'';
+
+      return `
       <div class="key-item">
-        <div>
-          <div class="key-code">${k.key}</div>
-          <div class="key-meta">${new Date(k.created_at).toLocaleDateString()}${k.used_at?' • Used '+new Date(k.used_at).toLocaleDateString():''}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div class="key-code">${k.key}</div>
+            ${sharedBadge}
+          </div>
+          <div class="key-meta">
+            ${new Date(k.created_at).toLocaleDateString()}
+            ${k.used_at?' • Used '+new Date(k.used_at).toLocaleDateString():''}
+            ${isShared?` • ${usageLine}`:''}
+          </div>
         </div>
-        <span class="key-status ${k.is_used?'used':'unused'}">${k.is_used?'Used':'Available'}</span>
+        <span class="key-status ${k.is_used?'used':'unused'}">${k.is_used?'Full':'Active'}</span>
         ${!k.is_used?`<button class="copy-btn" onclick="copyKey('${k.key}')">📋 Copy</button>`:''}
         <button class="del-btn" onclick="deleteKey('${k.id}')">🗑️</button>
       </div>
-    `).join('');
+    `}).join('');
   }
 
   function copyKey(key){

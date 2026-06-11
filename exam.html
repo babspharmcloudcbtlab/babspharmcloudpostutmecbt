@@ -1372,9 +1372,11 @@
       return;
     }
 
-    // Only shuffle for activated users (free users get consistent order)
+    // Questions always appear in original uploaded order (preserves
+    // cross-question references like "refer to question 10").
+    // Answer options are still shuffled to prevent pattern memorisation.
     if(isActivated){
-      questions = shuffleArray(data).map(q => shuffleOptions(q));
+      questions = data.map(q => shuffleOptions(q));
     } else {
       questions = data;
     }
@@ -1422,6 +1424,52 @@
       else if (flagged.has(i)) el.classList.add('flagged');
       else if (answers[i] !== undefined) el.classList.add('answered');
     });
+  }
+
+  // ── GROUP LINKED QUESTIONS ────────────────────────────────────
+  // Detects questions that reference other questions and keeps them
+  // together as a group in their original order during shuffle.
+  function groupLinkedQuestions(arr) {
+    // Patterns that indicate a question references another
+    const refPattern = /\b(question|ques|qu|q)\.?\s*(\d+)\b|\b(above|previous|diagram above|passage above)\b/i;
+
+    // Build groups: each group is an array of question objects
+    const groups = [];
+    let currentGroup = [];
+
+    for (let i = 0; i < arr.length; i++) {
+      const q = arr[i];
+      const text = (q.question || '') + ' ' + (q.option_a || '') + ' ' + (q.option_b || '') + ' ' + (q.option_c || '') + ' ' + (q.option_d || '');
+      const hasRef = refPattern.test(text);
+
+      if (hasRef && currentGroup.length > 0) {
+        // This question references something — attach to current group
+        currentGroup.push(q);
+      } else if (hasRef && i > 0) {
+        // Starts a new linked group with the previous question
+        currentGroup = [arr[i - 1]];
+        // Remove previous question from its solo group
+        if (groups.length > 0 && groups[groups.length - 1].length === 1 &&
+            groups[groups.length - 1][0] === arr[i - 1]) {
+          groups.pop();
+        }
+        currentGroup.push(q);
+      } else {
+        // No reference — if we were building a group, close it
+        if (currentGroup.length > 0) {
+          groups.push(currentGroup);
+          currentGroup = [];
+        }
+        groups.push([q]);
+      }
+    }
+    if (currentGroup.length > 0) groups.push(currentGroup);
+
+    // Shuffle the groups (not individual questions within a group)
+    const shuffledGroups = shuffleArray(groups);
+
+    // Flatten back to array
+    return shuffledGroups.flat();
   }
 
   // ── SHUFFLE HELPERS ───────────────────────────────────────────
