@@ -111,12 +111,13 @@ body{font-family:'Sora',sans-serif;background:var(--gray-50);min-height:100vh;}
       <div class="card-front">
         <div class="card-label">Question — tap to reveal answer</div>
         <div class="card-question" id="card-question">Loading...</div>
-        <div class="card-options" id="card-options" style="margin-top:14px;"></div>
+        <div class="card-options" id="card-options-front" style="margin-top:14px;"></div>
         <div class="tap-hint">👆 Tap card to see answer</div>
       </div>
       <div class="card-back">
         <div class="card-label">Answer</div>
         <div class="card-answer" id="card-answer"></div>
+        <div class="card-options" id="card-options-back" style="margin-bottom:10px;"></div>
         <div class="card-exp" id="card-exp" style="display:none;"><span>💡 Explanation:</span> <span id="card-exp-text"></span></div>
       </div>
     </div>
@@ -212,12 +213,18 @@ function showCard(){
   const ansText=q[ansKey]||'';
   document.getElementById('card-answer').textContent=q.correct_answer+'. '+ansText;
 
-  // Options
+  // Options — plain on front (no highlighting)
   const letters=['A','B','C','D'];
   const keys=['option_a','option_b','option_c','option_d'];
-  document.getElementById('card-options').innerHTML=letters.map((l,i)=>`
+  document.getElementById('card-options-front').innerHTML=letters.map((l,i)=>`
+    <div class="card-opt">
+      ${l}. ${q[keys[i]]||''}
+    </div>`).join('');
+
+  // Options — highlighted on back (revealed after flip)
+  document.getElementById('card-options-back').innerHTML=letters.map((l,i)=>`
     <div class="card-opt ${l===q.correct_answer?'correct':''}">
-      ${l===q.correct_answer?'✅':''} ${l}. ${q[keys[i]]||''}
+      ${l===q.correct_answer?'✅ ':''}${l}. ${q[keys[i]]||''}
     </div>`).join('');
 
   // Explanation
