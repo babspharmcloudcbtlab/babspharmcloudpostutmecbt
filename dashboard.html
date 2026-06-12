@@ -1022,9 +1022,16 @@
         return;
       }
 
-      const isShared = data.max_uses !== null && data.max_uses !== undefined;
+      const isMaster = data.key_type === 'master';
+      const isShared = !isMaster && data.max_uses !== null && data.max_uses !== undefined;
 
-      if (isShared) {
+      if (isMaster) {
+        // Master key — never expires, never full, just increment count
+        await sb.from('activation_keys').update({
+          use_count: (data.use_count || 0) + 1
+        }).eq('key', key);
+
+      } else if (isShared) {
         // Shared key logic
         const useCount = data.use_count || 0;
         const maxUses = data.max_uses; // 0 = unlimited

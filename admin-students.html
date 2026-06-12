@@ -230,6 +230,7 @@
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div id="modal-results-content">Loading...</div>
+    <button id="modal-delete-btn" onclick="deleteStudentResults()" style="display:none;margin-top:16px;width:100%;padding:11px;background:rgba(229,62,62,0.08);color:var(--error);border:1.5px solid rgba(229,62,62,0.2);border-radius:10px;font-family:Sora,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🗑️ Delete All Results for This Student</button>
   </div>
 </div>
 
@@ -380,7 +381,10 @@
     `;
   }
 
+  let currentViewUserId=null;
+
   function viewResults(userId,name){
+    currentViewUserId=userId;
     const results=studentResults[userId]||[];
     document.getElementById('modal-student-name').textContent=name+' — Results';
 
@@ -402,10 +406,25 @@
       }).join('');
     }
 
+    document.getElementById('modal-delete-btn').style.display=results.length>0?'block':'none';
     document.getElementById('results-modal').classList.add('show');
   }
 
-  function closeModal(){document.getElementById('results-modal').classList.remove('show');}
+  function closeModal(){document.getElementById('results-modal').classList.remove('show');currentViewUserId=null;}
+
+  async function deleteStudentResults(){
+    if(!currentViewUserId)return;
+    if(!confirm('Delete ALL results for this student? This cannot be undone.'))return;
+    try{
+      const{error}=await sb.from('results').delete().eq('user_id',currentViewUserId);
+      if(error)throw error;
+      studentResults[currentViewUserId]=[];
+      document.getElementById('modal-results-content').innerHTML='<p style="color:var(--gray-400);text-align:center;padding:24px;">No exam results yet.</p>';
+      document.getElementById('modal-delete-btn').style.display='none';
+      alert('Results deleted successfully.');
+      loadStudents();
+    }catch(e){alert('Failed to delete results.');}
+  }
 
   function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('show');}
   function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}

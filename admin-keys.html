@@ -82,6 +82,13 @@
   .del-btn:hover{background:var(--error);color:white;}
 
   .ks-num.shared{color:#805ad5;}
+  .master-key-panel{background:linear-gradient(135deg,#1a3bbd,#805ad5);border-radius:16px;padding:20px 24px;margin-bottom:20px;color:white;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+  .master-key-panel h3{font-family:"Sora",sans-serif;font-size:14px;font-weight:700;margin-bottom:4px;}
+  .master-key-panel p{font-size:12px;opacity:0.8;}
+  .master-key-value{font-family:"Sora",sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;background:rgba(255,255,255,0.15);padding:8px 16px;border-radius:10px;cursor:pointer;}
+  .master-key-value:hover{background:rgba(255,255,255,0.25);}
+  .master-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(255,215,0,0.2);color:#ffd700;white-space:nowrap;border:1px solid rgba(255,215,0,0.4);}
+  .key-status.master{background:rgba(255,215,0,0.15);color:#b7791f;}
 
   /* KEY TYPE TOGGLE */
   .type-toggle{display:flex;gap:6px;margin-bottom:0;}
@@ -226,6 +233,16 @@
 
       <!-- KEYS LIST -->
       <div>
+        <div class="master-key-panel" id="master-key-panel">
+          <div>
+            <h3>👑 Master Key</h3>
+            <p>Unlimited students · Never expires · Never goes Full</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="master-key-value" id="master-key-display" onclick="copyMasterKey()">Loading...</div>
+            <button onclick="generateMasterKey()" style="padding:8px 14px;background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">🔄 New Key</button>
+          </div>
+        </div>
         <div class="keys-stats" id="keys-stats">
           <div class="ks-card"><div class="ks-num total" id="stat-total">--</div><div class="ks-label">Total Keys</div></div>
           <div class="ks-card"><div class="ks-num unused" id="stat-unused">--</div><div class="ks-label">Available</div></div>
@@ -465,7 +482,43 @@
   function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
   async function handleLogout(){await sb.auth.signOut();window.location.href='admin-login.html';}
 
+
+  // MASTER KEY
+  async function loadMasterKey(){
+    const {data} = await sb.from('activation_keys').select('*').eq('key_type','master').single();
+    if(data){
+      document.getElementById('master-key-display').textContent = data.key;
+      document.getElementById('master-key-display').dataset.key = data.key;
+    } else {
+      await createMasterKey();
+    }
+  }
+
+  async function createMasterKey(){
+    const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const seg=()=>Array.from({length:4},()=>chars[Math.floor(Math.random()*chars.length)]).join('');
+    const key='MASTER-'+seg()+'-'+seg();
+    await sb.from('activation_keys').insert({key, is_used:false, use_count:0, max_uses:0, key_type:'master'});
+    document.getElementById('master-key-display').textContent = key;
+    document.getElementById('master-key-display').dataset.key = key;
+  }
+
+  async function generateMasterKey(){
+    if(!confirm('Generate a new master key? The old one will stop working.')) return;
+    await sb.from('activation_keys').delete().eq('key_type','master');
+    await createMasterKey();
+    alert('New master key created!');
+  }
+
+  function copyMasterKey(){
+    const key = document.getElementById('master-key-display').dataset.key;
+    if(!key || key==='Loading...') return;
+    navigator.clipboard.writeText(key);
+    alert('Master key copied: ' + key);
+  }
+
   init();
+  loadMasterKey();
 </script>
 </body>
 </html>
