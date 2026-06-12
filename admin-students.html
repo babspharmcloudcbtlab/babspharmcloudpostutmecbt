@@ -259,6 +259,11 @@
       // Get all results to compute scores
       const{data:results}=await sb.from('results').select('user_id,score,total,subject_id,created_at,subjects(name)');
 
+      // Get all profiles for real names
+      const{data:profiles}=await sb.from('profiles').select('id,full_name,email,university');
+      const profileMap={};
+      (profiles||[]).forEach(p=>{ profileMap[p.id]=p; });
+
       // Build results map
       studentResults={};
       (results||[]).forEach(r=>{
@@ -270,8 +275,6 @@
       const totalExams=(results||[]).length;
       document.getElementById('stat-exams').textContent=totalExams;
 
-      // Since we can't list all auth users from client side,
-      // we use activation keys (activated students) + results (students who took exams)
       const activatedIds=new Set((keys||[]).map(k=>k.used_by));
 
       // Build student list from keys
@@ -280,7 +283,8 @@
         key:k.key,
         used_at:k.used_at,
         is_activated:true,
-        results:studentResults[k.used_by]||[]
+        results:studentResults[k.used_by]||[],
+        profile:profileMap[k.used_by]||null
       }));
 
       // Also add students who took exams but may not have activated
@@ -289,9 +293,23 @@
           allStudents.push({
             id:r.user_id,
             is_activated:false,
-            results:studentResults[r.user_id]||[]
+            results:studentResults[r.user_id]||[],
+            profile:profileMap[r.user_id]||null
           });
           activatedIds.add(r.user_id);
+        }
+      });
+
+      // Also add students in profiles who haven't taken exams or activated
+      (profiles||[]).forEach(p=>{
+        if(!activatedIds.has(p.id)){
+          allStudents.push({
+            id:p.id,
+            is_activated:false,
+            results:[],
+            profile:p
+          });
+          activatedIds.add(p.id);
         }
       });
 
@@ -333,7 +351,11 @@
       const totalScore=results.reduce((sum,r)=>sum+r.score,0);
       const totalPossible=results.reduce((sum,r)=>sum+r.total,0);
       const avgPct=totalPossible>0?Math.round((totalScore/totalPossible)*100):0;
-      const initials=`S${i+1}`;
+      const name=s.profile?.full_name||'Unknown Student';
+      const email=s.profile?.email||'';
+      const uni=s.profile?.university||'';
+      const initials=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'S?';
+      const displayName=name;
 
       return `
         <tr>
@@ -341,8 +363,8 @@
             <div class="student-cell">
               <div class="avatar">${initials}</div>
               <div>
-                <div class="student-name">Student ${i+1}</div>
-                <div class="student-email">${s.is_activated?'Key: '+s.key:'No activation key'}</div>
+                <div class="student-name">${displayName}</div>
+                <div class="student-email">${email}${uni?' • '+uni:''}</div>
               </div>
             </div>
           </td>
@@ -357,8 +379,9 @@
             `:'<span style="color:var(--gray-400);font-size:12px;">No exams yet</span>'}
           </td>
           <td>${s.used_at?new Date(s.used_at).toLocaleDateString():'--'}</td>
-          <td>
-            ${results.length>0?`<button onclick="viewResults('${s.id}','Student ${i+1}')" style="padding:6px 14px;background:rgba(26,59,189,0.08);color:var(--blue);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">View Results</button>`:'--'}
+          <td style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${results.length>0?`<button onclick="viewResults('${s.id}','${name.replace(/'/g,"\'")}',true)" style="padding:6px 12px;background:rgba(26,59,189,0.08);color:var(--blue);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;">📊 Results</button>`:''}
+            <button onclick="confirmDeleteResults('${s.id}','${name.replace(/'/g,"\'")}',${results.length})" style="padding:6px 12px;background:rgba(229,62,62,0.08);color:var(--error);border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;${results.length===0?'opacity:0.4;cursor:not-allowed;':''}" ${results.length===0?'disabled':''}>🗑️ Delete</button>
           </td>
         </tr>
       `;
@@ -383,7 +406,25 @@
 
   let currentViewUserId=null;
 
-  function viewResults(userId,name){
+  function confirmDeleteResults(userId, name, count){
+    if(count===0) return;
+    if(confirm('Delete ALL '+count+' result(s) for '+name+'? This cannot be undone.'))
+      deleteStudentResultsById(userId, name);
+  }
+
+  async function deleteStudentResultsById(userId, name){
+    try{
+      const{error}=await sb.from('results').delete().eq('user_id',userId);
+      if(error)throw error;
+      studentResults[userId]=[];
+      alert('✅ Results deleted for '+name);
+      loadStudents();
+    }catch(e){
+      alert('Failed to delete results.');
+    }
+  }
+
+  function viewResults(userId,name,fromTable=false){
     currentViewUserId=userId;
     const results=studentResults[userId]||[];
     document.getElementById('modal-student-name').textContent=name+' — Results';

@@ -838,6 +838,22 @@
     </div>
 
   </div>
+
+    <!-- RESET PASSWORD PANEL -->
+    <div class="form-panel" id="reset-panel">
+      <p style="font-size:14px;color:#8b92a9;margin-bottom:20px;">Enter your new password below.</p>
+      <div class="input-group">
+        <label>New Password</label>
+        <input type="password" id="reset-password" placeholder="Enter new password (min 6 chars)">
+      </div>
+      <div class="input-group" style="margin-top:14px;">
+        <label>Confirm Password</label>
+        <input type="password" id="reset-confirm" placeholder="Confirm new password">
+      </div>
+      <button class="btn-primary" onclick="handleResetPassword()" id="reset-btn" style="margin-top:20px;">
+        Update Password →
+      </button>
+    </div>
 </div>
 
 <script>
@@ -1012,6 +1028,38 @@
     if (active.id === 'login-panel') handleLogin();
     else if (active.id === 'signup-panel') handleSignup();
     else if (active.id === 'forgot-panel') handleForgot();
+  });
+
+
+  async function handleResetPassword() {
+    const password = document.getElementById('reset-password').value;
+    const confirm = document.getElementById('reset-confirm').value;
+    if (!password || password.length < 6) return showAlert('Password must be at least 6 characters.');
+    if (password !== confirm) return showAlert('Passwords do not match.');
+    setLoading('reset-btn', true);
+    try {
+      const { error } = await sb.auth.updateUser({ password });
+      if (error) throw error;
+      showAlert('Password updated! Redirecting to dashboard...', 'success');
+      setTimeout(() => window.location.href = 'dashboard.html', 2000);
+    } catch(err) {
+      showAlert(err.message || 'Failed to update password.');
+    } finally {
+      setLoading('reset-btn', false);
+    }
+  }
+
+  // Detect password recovery from email link
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+      const resetPanel = document.getElementById('reset-panel');
+      if (resetPanel) resetPanel.classList.add('active');
+      document.getElementById('auth-title').textContent = 'Set New Password';
+      document.getElementById('auth-subtitle').textContent = 'Choose a strong password';
+      const tabs = document.querySelector('.tab-btns');
+      if (tabs) tabs.style.display = 'none';
+    }
   });
 
   // ── CHECK IF ALREADY LOGGED IN ─────────────────────────────────
