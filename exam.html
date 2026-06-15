@@ -1017,6 +1017,102 @@
   .locked-actions .primary:hover { background: #e09000; }
   .locked-actions .secondary { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
 
+
+  /* ── BOTTOM QUESTION NAVIGATOR (MOBILE) ─────────────── */
+  .bottom-nav-bar {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: white;
+    border-top: 2px solid var(--gray-100);
+    z-index: 100;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+  }
+
+  .bottom-nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+
+  .bottom-nav-toggle span {
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--gray-800);
+  }
+
+  .bottom-nav-toggle .nav-chevron {
+    font-size: 16px;
+    transition: transform 0.2s;
+    color: var(--gray-400);
+  }
+
+  .bottom-nav-toggle.open .nav-chevron { transform: rotate(180deg); }
+
+  .bottom-nav-grid {
+    display: none;
+    padding: 12px 16px 16px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+
+  .bottom-nav-grid.open { display: block; }
+
+  .bottom-nav-numbers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .bottom-qnum {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    border: 2px solid var(--gray-200);
+    color: var(--gray-400);
+    background: white;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+
+  .bottom-qnum.current { border-color: var(--blue); background: var(--blue); color: white; }
+  .bottom-qnum.answered { border-color: var(--success); background: rgba(56,161,105,0.1); color: var(--success); }
+  .bottom-qnum.flagged { border-color: var(--gold); background: rgba(245,166,35,0.1); color: var(--warning); }
+
+  .bottom-nav-legend {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .bottom-nav-legend span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--gray-400);
+  }
+
+  .bottom-nav-legend .dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  @media (max-width: 768px) {
+    .question-sidebar { display: none !important; }
+    .bottom-nav-bar { display: block; }
+    .question-panel { padding: 20px 16px 120px; }
+  }
+
   /* ANIMATIONS */
   @keyframes fadeUp {
     from { opacity: 0; transform: translateY(16px); }
@@ -1029,7 +1125,6 @@
   @media (max-width: 768px) {
     .subjects-grid { grid-template-columns: repeat(2, 1fr); }
     .settings-row { grid-template-columns: 1fr; }
-    .question-sidebar { display: none; }
     .question-panel { padding: 20px; }
     .exam-topbar { padding: 12px 16px; }
   }
@@ -1173,6 +1268,23 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+
+<!-- ── BOTTOM QUESTION NAVIGATOR (MOBILE) ─────────────────── -->
+<div class="bottom-nav-bar" id="bottom-nav-bar">
+  <div class="bottom-nav-toggle" id="bottom-nav-toggle" onclick="toggleBottomNav()">
+    <span id="bottom-nav-label">📋 Questions — Tap to navigate</span>
+    <span class="nav-chevron">▲</span>
+  </div>
+  <div class="bottom-nav-grid" id="bottom-nav-grid">
+    <div class="bottom-nav-numbers" id="bottom-nav-numbers"></div>
+    <div class="bottom-nav-legend">
+      <span><span class="dot" style="background:var(--blue);display:inline-block;border-radius:3px;"></span> Current</span>
+      <span><span class="dot" style="background:rgba(56,161,105,0.3);border:1.5px solid var(--success);display:inline-block;border-radius:3px;"></span> Answered</span>
+      <span><span class="dot" style="background:white;border:1.5px solid var(--gray-200);display:inline-block;border-radius:3px;"></span> Unanswered</span>
+    </div>
   </div>
 </div>
 
@@ -1372,11 +1484,9 @@
       return;
     }
 
-    // Questions always appear in original uploaded order (preserves
-    // cross-question references like "refer to question 10").
-    // Answer options are still shuffled to prevent pattern memorisation.
+    // Only shuffle for activated users (free users get consistent order)
     if(isActivated){
-      questions = data.map(q => shuffleOptions(q));
+      questions = shuffleArray(data).map(q => shuffleOptions(q));
     } else {
       questions = data;
     }
@@ -1413,6 +1523,7 @@
     map.innerHTML = questions.map((_, i) => `
       <div class="qmap-item" id="qmap-${i}" onclick="goToQuestion(${i})">${i + 1}</div>
     `).join('');
+    buildBottomNav();
   }
 
   function updateQuestionMap() {
@@ -1424,52 +1535,43 @@
       else if (flagged.has(i)) el.classList.add('flagged');
       else if (answers[i] !== undefined) el.classList.add('answered');
     });
+    updateBottomNav();
   }
 
-  // ── GROUP LINKED QUESTIONS ────────────────────────────────────
-  // Detects questions that reference other questions and keeps them
-  // together as a group in their original order during shuffle.
-  function groupLinkedQuestions(arr) {
-    // Patterns that indicate a question references another
-    const refPattern = /\b(question|ques|qu|q)\.?\s*(\d+)\b|\b(above|previous|diagram above|passage above)\b/i;
 
-    // Build groups: each group is an array of question objects
-    const groups = [];
-    let currentGroup = [];
+  // ── BOTTOM NAVIGATOR (MOBILE) ──────────────────────────────────
+  function buildBottomNav() {
+    const container = document.getElementById('bottom-nav-numbers');
+    if (!container) return;
+    container.innerHTML = questions.map((_, i) => `
+      <div class="bottom-qnum" id="bqnum-${i}" onclick="goToQuestion(${i})">${i + 1}</div>
+    `).join('');
+    updateBottomNav();
+  }
 
-    for (let i = 0; i < arr.length; i++) {
-      const q = arr[i];
-      const text = (q.question || '') + ' ' + (q.option_a || '') + ' ' + (q.option_b || '') + ' ' + (q.option_c || '') + ' ' + (q.option_d || '');
-      const hasRef = refPattern.test(text);
+  function updateBottomNav() {
+    questions.forEach((_, i) => {
+      const el = document.getElementById('bqnum-' + i);
+      if (!el) return;
+      el.className = 'bottom-qnum';
+      if (i === currentQ) el.classList.add('current');
+      else if (flagged.has(i)) el.classList.add('flagged');
+      else if (answers[i] !== undefined) el.classList.add('answered');
+    });
+    const answered = Object.keys(answers).length;
+    const total = questions.length;
+    document.getElementById('bottom-nav-label').textContent = 
+      `📋 Q${currentQ + 1} of ${total} — ${answered} answered`;
+    // Scroll current into view
+    const cur = document.getElementById('bqnum-' + currentQ);
+    if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }
 
-      if (hasRef && currentGroup.length > 0) {
-        // This question references something — attach to current group
-        currentGroup.push(q);
-      } else if (hasRef && i > 0) {
-        // Starts a new linked group with the previous question
-        currentGroup = [arr[i - 1]];
-        // Remove previous question from its solo group
-        if (groups.length > 0 && groups[groups.length - 1].length === 1 &&
-            groups[groups.length - 1][0] === arr[i - 1]) {
-          groups.pop();
-        }
-        currentGroup.push(q);
-      } else {
-        // No reference — if we were building a group, close it
-        if (currentGroup.length > 0) {
-          groups.push(currentGroup);
-          currentGroup = [];
-        }
-        groups.push([q]);
-      }
-    }
-    if (currentGroup.length > 0) groups.push(currentGroup);
-
-    // Shuffle the groups (not individual questions within a group)
-    const shuffledGroups = shuffleArray(groups);
-
-    // Flatten back to array
-    return shuffledGroups.flat();
+  function toggleBottomNav() {
+    const grid = document.getElementById('bottom-nav-grid');
+    const toggle = document.getElementById('bottom-nav-toggle');
+    grid.classList.toggle('open');
+    toggle.classList.toggle('open');
   }
 
   // ── SHUFFLE HELPERS ───────────────────────────────────────────
